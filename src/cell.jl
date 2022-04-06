@@ -60,6 +60,9 @@ function positions(structure::Cell{T}) where T
     structure.positions
 end
 
+"Static array of positions"
+sposarray(structure::Cell{T}) where T = [SVector{3, T}(x) for x in eachcol(positions(structure))]
+
 "Species names"
 species(structure::Cell) = structure.symbols
 
@@ -197,15 +200,13 @@ function distance_matrix(structure::Cell)
     # Compute the naive pair-wise vectors
     nn = nions(structure)
     vecs = zeros(3, nn*nn)
-    posmat = positions(structure)
+    pos = sposarray(structure)
     dmat = zeros(nn, nn)
     ivec = 0
     for i in 1:nn
         for j in i+1:nn
             ivec += 1
-            for ii = 1:3
-                vecs[ii, ivec] = posmat[ii, j] - posmat[ii, i]  
-            end
+            vecs[:, ivec] .= pos[j] .- pos[i]
         end
     end
     # Apply minimum image conventions

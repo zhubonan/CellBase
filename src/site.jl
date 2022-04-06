@@ -34,8 +34,8 @@ symbol(s::Site) = s.symbol
 
 distance_squared_between(s1::Site, s2::Site) = sum((s1.position .- s2.position) .^ 2)
 distance_squared_between(s1::AbstractVector, s2::AbstractVector) = sum((s1 - s2) .^ 2) 
+distance_squared_between(s1::AbstractVector, s2::AbstractVector, shift) = sum((s1 - s2 .- shift) .^ 2) 
 distance_squared_between(s1::Site, s2::Site, shift) = sum((s1.position .- s2.position .- shift) .^ 2)
-distance_squared_between(s1::Site, s2::Site) = sum((s1.position .- s2.position) .^ 2)
 
 distance_between(s1, s2, shift) = sqrt(distance_squared_between(s1, s2, shift))
 distance_between(s1, s2) = sqrt(distance_squared_between(s1, s2))
