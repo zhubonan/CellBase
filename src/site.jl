@@ -1,19 +1,20 @@
 using Printf
+using StaticArrays
+export Site, distance_between, distance_squared_between
 
-export Site, distance_between, distance_squared_between, displace!
 """
 Site{T}
 
 Represent a site with absolute coordinates
 """
 struct Site{T}
-    position::Vector{T}
+    position::T
     index::Int
     symbol::Symbol
 end
 
 "Initialise a site from only position and symbol"
-function Site(pos::Vector{T}, symbol::Symbol) where T
+function Site(pos, symbol)
     Site(pos, 0, symbol)
 end
 
@@ -30,51 +31,18 @@ Base.position(s::Site) = s.position
 index(s::Site) = s.index
 symbol(s::Site) = s.symbol
 
-"Distance between two sites"
-function distance_between(s1::Site{T}, s2::Site{T}) where T
-    sqrt(distance_squared_between(s1, s2))
-end
 
-"Distance between two sites with shifts applied to s2"
-function distance_between(s1::Site{T}, s2::Site{T}, shift::Vector) where T
-    sqrt(distance_squared_between(s1, s2, shift))
-end
+distance_squared_between(s1::Site, s2::Site) = sum((s1.position .- s2.position) .^ 2)
+distance_squared_between(s1::AbstractVector, s2::AbstractVector) = sum((s1 - s2) .^ 2) 
+distance_squared_between(s1::Site, s2::Site, shift) = sum((s1.position .- s2.position .- shift) .^ 2)
+distance_squared_between(s1::Site, s2::Site) = sum((s1.position .- s2.position) .^ 2)
 
-"Distance between two sites"
-function distance_squared_between(s1::Site{T}, s2::Site{T}, shift::Vector) where T
-    s = 0.0
-    for i in 1:3
-        s += (s1.position[i] - s2.position[i] - shift[i]) ^ 2
-    end
-    s
-end
-
-"Distance between two sites squared"
-function distance_squared_between(s1::Site{T}, s2::Site{T}) where T
-    s = 0.0
-    for i in 1:3
-        s += (s1.position[i] - s2.position[i]) ^ 2
-    end
-    s
-end
-
-"Distance between two three vectors"
-function distance_squared_between(s1::AbstractVector, s2::AbstractVector) where T
-    s = 0.0
-    nv = length(s1)
-    for i in 1:nv
-        s += (s1[i] - s2[i]) ^ 2
-    end
-    s
-end
+distance_between(s1, s2, shift) = sqrt(distance_squared_between(s1, s2, shift))
+distance_between(s1, s2) = sqrt(distance_squared_between(s1, s2))
 
 
 "Unit vector from site 1 to shifted site 2"
-function unit_vector_between!(vtmp::Vector{T}, s1::Site{T}, s2::Site{T}, shift::Vector) where T
-    for i in 1:3
-        vtmp[i] = s2.position[i] + shift[i] - s1.position[i] 
-    end
-    vtmp[:] /= norm(vtmp)
+function unit_vector_between(s1::Site, s2::Site, shift)
+    vtmp .= s2.position .- s1.position .+ shift
+    vtmp ./ norm(vtmp)
 end
-
-displace!(s::Site, vec::AbstractVector) = s.position[:] += vec

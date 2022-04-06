@@ -8,79 +8,63 @@ A Cell represents a periodic structure in three-dimensional space
 """
 mutable struct Cell{T}
     lattice::Lattice{T}                 # Lattice of the structure
-    sites::Vector{Site{T}}
-    set_indices::Vector{Int}             # Masking array for the sets
-    arrays::Dict{Symbol, AbstractArray}         # Any additional arrays
-    info::Dict
+    symbols::Vector{Symbol}
+    positions::Matrix{T}
+    arrays::Dict{Symbol, AbstractArray}        # Any additional arrays
+    metadata::Dict
 end
 
 """
-    Cell(l::Lattice, s::Vector{Site{T}}) where T
+    Cell(l::Lattice, symbols, positions) where T
 
-Construct a Cell type from lattice and a list of sites
+Construct a Cell type from arrays
 """
-function Cell(l::Lattice, s::Vector{Site{T}}) where T
-    set_indices = collect(1:length(s))
+function Cell(l::Lattice, symbols, positions) where T
     arrays = Dict{Symbol, AbstractArray}()
-    Cell(l, s, set_indices, arrays, Dict())
+    Cell(l, symbols, positions, arrays, Dict())
 end
 
 """
-    Cell(;lat::Lattice, pos::Matrix, numbers::Vector{Int})
+    Cell(lat::Lattice, numbers::Vector{Int}, positions)
 
 Constructure the Cell type from lattice, positions and numbers
 """
-function Cell(lat::Lattice, pos::Matrix{T}, numbers::Vector{Int}) where T
-    @assert size(pos)[1] == 3 "Only support three dimensional structure"
+function Cell(lat::Lattice, numbers::Vector{Int}, positions)
     species = [Symbol(elements[i].symbol) for i in numbers]
-    Cell(lat, pos, species)
-end
-
-"""
-    Cell(;lat::Lattice, pos::Matrix, species::Vector{Symbol})
-
-Constructure the Cell type from lattice, positions and species
-"""
-function Cell(lat::Lattice, pos::Matrix{T}, species::Vector{Symbol}) where T
-    set_indices = [i for i in 1:size(pos)[2]]
-    arrays = Dict{Symbol, AbstractArray}()
-    sites = Site{T}[]
-    for n in 1:size(pos)[2]
-        push!(sites, Site(pos[:, n], n, species[n]))
-    end
-    Cell(lat, sites, set_indices, arrays, Dict())
+    Cell(lat, species, positions)
 end
 
 """
 Clip a structure with a given indexing array
 """
 function clip(s::Cell, mask::AbstractVector)
-    new_sites = sites(s)[mask]
-    new_sets = set_indices(s)[mask]  # Keep the original set index
-    Cell(lattice(s), new_sites, new_sets, Dict{Symbol, AbstractArray}(), s.info)
+    new_pos = positions(s)[:, mask]
+    new_symbols = species(s)[mask]
+    # Clip any additional arrays
+    new_array = Dict{Symbol, AbstractArray}()
+    for (key, array) in pairs(s.arrays)
+        new_array[key] = selectdim(array, ndims(A), mask)
+    end
+    Cell(lattice(s), new_symbols, new_pos, new_array, s.metadata)
 end
 
 # Basic interface 
 "Number of atoms in a structure"
-nions(structure::Cell) = length(structure.sites)
+nions(structure::Cell) = length(structure.symbols)
 
 "Number of atoms in a structure"
-natoms(structure::Cell) = length(structure.sites)
+const natoms = nions
 
 "Positions of ions in a structure"
 function positions(structure::Cell{T}) where T
-    posarray = Array{T}(undef, size(structure.sites[1].position)[1], nions(structure))
-    for (i, site) in enumerate(structure.sites)
-        posarray[:, i] = site.position
-    end
-    posarray
+    structure.positions
 end
 
 "Species names"
-species(structure::Cell) = Symbol[site.symbol for site in structure.sites]
+species(structure::Cell) = structure.symbols
 
 "Return the atomic numbers"
-atomic_numbers(structure::Cell) = Int[elements[site.symbol].number for site in structure.sites]
+atomic_numbers(structure::Cell) = Int[elements[x] for x in species(structure)]
 
 ## Wrapper for the Lattice ###
 
@@ -111,20 +95,17 @@ nsets(structure::Cell) = length(unique(structure.set_indices))
 """Indices for the sets"""
 set_indices(structure::Cell) = structure.set_indices
 
-"""Info dictionary"""
-info(structure::Cell) = structure.info
+"""metadata dictionary"""
+metadata(structure::Cell) = structure.metadata
 
-"""Attach info dictionary"""
-attachinfo!(structure::Cell, info::Dict) = structure.info = info
+"""Attach metadata dictionary"""
+attachmetadata!(structure::Cell, metadata::Dict) = structure.metadata = metadata
 
 """Number of formula units"""
 num_fu(structure::Cell) = formula_and_factor(structure)[2]
 
 "Reduced formula of a structures"
 reduced_fu(structure::Cell) = formula_and_factor(structure)[1]
-
-"""Sites of a structure"""
-sites(structure::Cell) = structure.sites
 
 """
 Sort symbols by atomic numbers
@@ -140,9 +121,9 @@ end
 function formula_and_factor(structure::Cell)
 
     # Check if computed results already exists
-    info_dict = info(structure)
-    rformula = get(info_dict, :formula, :None)
-    num_fu = get(info_dict, :num_fu, 0)
+    metadata_dict = metadata(structure)
+    rformula = get(metadata_dict, :formula, :None)
+    num_fu = get(metadata_dict, :num_fu, 0)
 
     if (rformula != :None) & (num_fu != 0)
         return rformula, num_fu
@@ -165,8 +146,8 @@ function formula_and_factor(structure::Cell)
         end
     end
     rformula = Symbol(args...)
-    info(structure)[:formula] = rformula
-    info(structure)[:num_fu] = num_fu
+    metadata(structure)[:formula] = rformula
+    metadata(structure)[:num_fu] = num_fu
     return rformula, num_fu
 end
 
@@ -340,7 +321,7 @@ function make_supercell(structure::Cell, a, b, c)
         end
     end
     new_spec = repeat(species(structure), nshifts)
-    Cell(Lattice(new_cell), new_pos, new_spec)
+    Cell(Lattice(new_cell), new_spec, new_pos)
 end
 
 

@@ -7,19 +7,14 @@ using CellBase
         0 2 0
         0 0 3
     ]
-    s = Cell(Lattice(mat), rand(3, 4), [1, 1, 1, 1])
+    s = Cell(Lattice(mat), [1,1,1,1], rand(3, 4))
     @testset "Construct" begin
         @test begin
-            Cell(Lattice(mat), rand(3, 4), [1, 1, 1, 1])
+            Cell(Lattice(mat), [1, 1, 1, 1], rand(3, 4))
             true
         end
         @test begin
-            Cell(Lattice(mat), rand(3, 4), [:H, :H, :H, :H])
-            true
-        end
-        @test begin
-            sites = Site{Float64}[Site(rand(3), i, :H) for i in 1:3]
-            Cell(Lattice(mat), sites)
+            Cell(Lattice(mat), [:H, :H, :H, :H], rand(3, 4))
             true
         end
     end
@@ -46,8 +41,6 @@ end
         @test distance_squared_between(s1, s2) ≈ 3
         @test distance_between(s1, s2, [0, 0, 1]) ≈ sqrt(2)
         @test distance_squared_between(s1, s2, [0, 0, 1]) ≈ 2
-        displace!(s1, [1.0, 0.0, 0.0])
-        @test position(s1) == [1.0, 0.0, 0.0]
     end
 end
 
