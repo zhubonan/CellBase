@@ -2,7 +2,7 @@ using Printf
 using PeriodicTable
 using LinearAlgebra
 
-export Cell, nions, positions, species, lattice, volume, cellmat, cellvecs, wrap!, cellpar
+export Cell, nions, positions, species, lattice, volume, cellmat, cellvecs, wrap!, cellpar, natoms, sposarray
 """
 A Cell represents a periodic structure in three-dimensional space
 """
