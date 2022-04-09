@@ -307,13 +307,13 @@ function make_supercell(structure::Cell, a, b, c)
 
     # Compute the shift vectors
     svec = shift_vectors(old_cell, a-1, b-1, c-1, 0, 0, 0)
-    nshifts = size(svec)[2]
+    nshifts = length(svec)
 
     current_pos = positions(structure)
     ns = natoms(structure)
     # New positions
     new_pos = zeros(3, nshifts * ns)
-    for (i, shift) in enumerate(eachcol(svec))
+    for (i, shift) in enumerate(svec)
         for j in 1:ns
             idx = j + (i - 1) * ns  # New index
             for n=1:3
