@@ -78,4 +78,33 @@ end
         @test vec[:] != [1, 1, 1]
     end
 
+   
+end
+
+@testset "NL" begin
+        lattice = Lattice(10, 10, 10)
+        frac_pos = [
+            0 0.5 0.5 0.5 0
+            0 0.5 0.5 0. 0.5 
+            0 0.5 0.  0.5  0.5
+        ]
+        pos = cellmat(lattice) * frac_pos
+        testcell = Cell(Lattice(10, 10, 10), [1,2,3,4,5], pos) 
+
+        parray = ExtendedPointArray(testcell, 6)
+        @test nions_orig(parray) == 5
+        @test nions_extended(parray) == 5 * 27
+
+        # Building neighbour list
+        nl = NeighbourList(parray, 8.0)
+        @test num_neighbours(nl, 1) == 12
+        @test num_neighbours(nl, 2) == 6
+        @test num_neighbours(nl, 3) == 14
+
+        # Distance
+        list = collect(eachneighbour(nl, 1))
+        @test length(list) == 12
+        @test list[1][1] == 3
+        @test list[1][2] == 64
+        @test list[1][3] ≈ sqrt(50)
 end

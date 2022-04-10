@@ -19,8 +19,9 @@ end
 
 Construct a Cell type from arrays
 """
-function Cell(l::Lattice, symbols, positions) where T
+function Cell(l::Lattice, symbols::Vector{Symbol}, positions::Matrix)
     arrays = Dict{Symbol, AbstractArray}()
+    @assert length(symbols) == size(positions, 2)
     Cell(l, symbols, positions, arrays, Dict())
 end
 
@@ -29,10 +30,27 @@ end
 
 Constructure the Cell type from lattice, positions and numbers
 """
-function Cell(lat::Lattice, numbers::Vector{Int}, positions)
+function Cell(lat::Lattice, numbers::Vector{Int}, positions::Matrix)
     species = [Symbol(elements[i].symbol) for i in numbers]
+    @assert length(numbers) == size(positions, 2)
     Cell(lat, species, positions)
 end
+
+
+"""
+    Cell(lat::Lattice, numbers::Vector{Int}, positions::Vector)
+
+Constructure the Cell type from lattice, positions and numbers
+"""
+function Cell(lat::Lattice, species_id, positions::Vector)
+    @assert length(species_id) == length(positions)
+    posmat = zeros(length(positions[1]), length(positions))
+    for (i, vec) in enumerate(positions)
+        posmat[:, i] = vec
+    end
+    Cell(lat, species_id, posmat)
+end
+
 
 """
 Clip a structure with a given indexing array
