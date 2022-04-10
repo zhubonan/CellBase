@@ -2,7 +2,7 @@ using Printf
 using PeriodicTable
 using LinearAlgebra
 
-export Cell, nions, positions, species, lattice, volume, cellmat, cellvecs, wrap!, cellpar, natoms, sposarray
+export Cell, nions, positions, species, atomic_numbers, lattice, volume, cellmat, cellvecs, wrap!, cellpar, natoms, sposarray
 """
 A Cell represents a periodic structure in three-dimensional space
 """
@@ -85,7 +85,7 @@ sposarray(structure::Cell{T}) where T = [SVector{3, T}(x) for x in eachcol(posit
 species(structure::Cell) = structure.symbols
 
 "Return the atomic numbers"
-atomic_numbers(structure::Cell) = Int[elements[x] for x in species(structure)]
+atomic_numbers(structure::Cell) = Int[elements[x].number for x in species(structure)]
 
 ## Wrapper for the Lattice ###
 
@@ -187,7 +187,7 @@ end
 
 function Base.show(io::IO, s::Cell)
     a, b, c, α, β, γ = cellpar(lattice(s))
-    sym = join(map(string, species(structure)))
+    sym = join(map(string, species(s)))
     print(io, "Cell $(sym) with $(nions(s)) atoms, lattice parametrs: $a $b $c $α $β $γ")
 end
 

@@ -23,6 +23,7 @@ using CellBase
         @test size(positions(s)) == (3, 4) 
         @test volume(s) > 0
         @test all(x-> x == :H, species(s)) 
+        @test all(x-> x == 1, atomic_numbers(s)) 
         ss = CellBase.make_supercell(s, 2, 2, 2)
         @test CellBase.natoms(ss) == CellBase.natoms(s) * 8
         @test CellBase.cellpar(ss)[1:3] == CellBase.cellpar(s)[1:3] .* 2
