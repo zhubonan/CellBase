@@ -3,6 +3,7 @@ Code for building neighbour lists and extended point array
 =#
 import Base
 export ExtendedPointArray, NeighbourList, eachneighbour, nions_extended, nions_orig, num_neighbours
+export rebuild!, update!
 
 
 """
@@ -21,6 +22,8 @@ struct ExtendedPointArray{T}
     orig_positions::Vector{T}
     "Index of of the all-zero shift vector"
     inoshift::Int
+    rcut::Float64
+    lattice::Matrix{Float64}
 end
 
 function Base.show(io::IO, s::ExtendedPointArray)
@@ -51,7 +54,52 @@ function ExtendedPointArray(cell::Cell, rcut)
             i += 1
         end
     end
-    ExtendedPointArray(indices, shiftidx, shifts, [SVector{3}(x) for x in eachcol(pos_extended)], original_positions, inoshift)
+    ExtendedPointArray(indices, shiftidx, shifts, [SVector{3}(x) for x in eachcol(pos_extended)], original_positions, 
+                       inoshift, rcut, cellmat(lattice(cell)))
+end
+
+"""
+Rebuild the ExtendedPointArray for an existing cell
+"""
+function rebuild!(ea::ExtendedPointArray, cell)
+    lattice_change = !all(ea.lattice .== cellmat(cell))
+    i = 1 
+    # Rebuild shift vectors from scratch is the lattice vectors have been changed
+    if lattice_change
+        newshifts = CellBase.shift_vectors(cellmat(lattice(cell)), ea.rcut;safe=false)
+        # Number of vectors change
+        dl = length(newshifts) - length(ea.shiftvecs)
+        if dl != 0
+            throw(ErrorException("Cannot rebuild if the nubmer of shifts have changed!"))
+        end
+        ea.shiftvecs .= newshifts
+    end
+    if lattice_change
+        # Lattice has changed = build based on the shift vectors
+        ea.orig_positions .= sposarray(cell)
+        for (idx, pos_orig) in enumerate(ea.orig_positions)   # Each original positions
+            for (ishift, shiftvec) in enumerate(ea.shiftvecs)   # Each shift positions
+                ea.positions[i] = pos_orig .+ shiftvec
+                ea.indices[i] = idx
+                ea.shiftidx[i] = ishift
+                i += 1
+            end
+        end
+    else
+        # no change in lattice shift all extended points with the displacements of the original ones
+        spos = sposarray(cell)
+        m = 1
+        for (ipos, pos) in enumerate(spos)
+            disp = pos - ea.orig_positions[ipos]
+            # Displace all images by this amount
+            for _ = 1:length(ea.shiftvecs)
+                ea.positions[m] = ea.positions[m] + disp
+                m += 1
+            end
+        end
+        ea.orig_positions .= spos
+    end
+    ea
 end
 
 
@@ -89,7 +137,9 @@ nions_extended(n::NeighbourList) = nions_extended(n.ea)
 
 
 function Base.show(io::IO, n::NeighbourList)
-    print("NeighbourList of maximum sizs $(n.nmax) for $(nions_orig(n))/$(nions_extended(n)) atoms")
+    println(io, "NeighbourList of $(nions_orig(n)) ($(nions_extended(n)) extended)")
+    print(io, "Current max neighbours $(maximum(n.nneigh))\n")
+    print(io, "Cut off radius: $(n.rcut)")
 end
 
 """
@@ -105,8 +155,46 @@ function NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false)
     distance = fill(-1., nmax, norig)
     nneigh = zeros(Int, norig)
 
+    @assert rcut >= ea.rcut "Cut off radius is large that that of the periodic image cut off."
+
     # Save vectors or not
     savevec ? vectors = fill(-1., 3, norig, nmax) : vectors = fill(-1., 1, 1, 1)
+    nl = NeighbourList(
+        ea,
+        extended_indices,
+        orig_indices,
+        distance,
+        vectors,
+        nneigh,
+        nmax,
+        savevec,
+        rcut,
+    )
+    rebuild!(nl, ea)
+    nl
+end
+
+"""
+    rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
+
+Perform a full rebuild of the neighbour list from scratch
+"""
+function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
+    
+    extended_indices = nl.extended_indices
+    orig_indices = nl.orig_indices
+    distance = nl.distance
+    nneigh = nl.nneigh 
+    nmax = nl.nmax
+    savevec = nl.has_vectors
+    vectors = nl.vectors
+    rcut = nl.rcut
+    # Reset
+    fill!(vectors, -1.)
+    fill!(distance, -1.)
+    fill!(orig_indices, 0)
+    fill!(extended_indices, 0)
+    fill!(nneigh, 0)
 
     for (iorig, posi) in enumerate(ea.orig_positions)
         ineigh = 0
@@ -132,17 +220,49 @@ function NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false)
         end
         nneigh[iorig] = ineigh
     end
-    NeighbourList(
-        ea,
-        extended_indices,
-        orig_indices,
-        distance,
-        vectors,
-        nneigh,
-        nmax,
-        savevec,
-        rcut,
-    )
+    nl
+end
+
+"""
+    rebuild(nl::NeighbourList, cell::Cell) 
+
+Perform a full rebuild of the NeighbourList with the latest geometry of the cell
+"""
+function rebuild!(nl::NeighbourList, cell::Cell) 
+    rebuild!(nl.ea, cell)
+    rebuild!(nl, nl.ea)
+end
+
+"""
+Update the calculated distances/vectors but do not rebuild the whole neighbour list
+"""
+function update!(nl::NeighbourList)
+    ea = nl.ea
+    for (isite, nneight) in enumerate(nl.nneigh)
+        inn = 1
+        posi = ea.orig_positions[isite]
+        while inn <= nneight
+            jid_ext = nl.extended_indices[inn, isite]
+            posj = ea.positions[jid_ext]
+            dij = distance_between(posj, posi)
+            # Update distance
+            nl.distance[inn, isite] = dij
+            # Update the vector
+            nl.has_vectors && (nl.vectors[:, inn, isite] .= posj .- posi)
+            inn += 1
+        end
+    end
+end
+
+"""
+    update!(nl::NeighbourList, cell::Cell) 
+
+Update the NeighbourList with the latest geometry of the Cell.
+No rebuilding is performed
+"""
+function update!(nl::NeighbourList, cell::Cell) 
+    rebuild!(nl.ea, cell)
+    update!(nl)
 end
 
 
