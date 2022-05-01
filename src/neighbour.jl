@@ -148,7 +148,7 @@ end
 Construct a NeighbourList from an extended point array for the points in the original cell
 """
 function NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false, ndim=3)
-    
+    rcut = convert(Float64, rcut) 
     norig = length(ea.orig_positions)
     extended_indices = zeros(Int, nmax, norig)
     orig_indices = zeros(Int, nmax, norig)
@@ -249,7 +249,7 @@ function update!(nl::NeighbourList)
             # Update distance
             nl.distance[inn, isite] = dij
             # Update the vector
-            nl.has_vectors && (nl.vectors[:, inn, isite] .= posj .- posi)
+            nl.has_vectors && (nl.vectors[inn, isite] = posj .- posi)
             inn += 1
         end
     end
