@@ -66,6 +66,7 @@ function clip(s::Cell, mask::AbstractVector)
     Cell(lattice(s), new_symbols, new_pos, new_array, s.metadata)
 end
 
+
 # Basic interface 
 "Number of atoms in a structure"
 nions(structure::Cell) = length(structure.symbols)
@@ -406,4 +407,31 @@ function fingerprint_distance(f1::AbstractVector, f2::AbstractVector;lim=Inf)
         ncomp += 1
     end
     d / comp
+end
+
+"""
+    get_fraction_positions(cell::Cell)
+
+Return fractional positions of the cell
+"""
+function get_scaled_positions(cell::Cell)
+    rec_cellmat(lattice(cell))  * positions(cell)
+end
+
+"""
+Set scaled positions for a cell
+"""
+function set_scaled_positions!(cell::Cell, scaled::Matrix)
+    cell.positions .= cellmat(cell) * scaled
+end
+
+"""
+    wrap!(cell::Cell)
+
+Wrap sites outside of the lattice back into the lattice
+"""
+function wrap!(cell::Cell)
+    scaled = get_scaled_positions(cell)
+    scaled .-= floor.(scaled)
+    set_scaled_positions!(cell, scaled)
 end

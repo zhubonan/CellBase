@@ -112,10 +112,13 @@ function random_vec(l::Lattice)
 end
 
 "Return scaled positions"
-scaled_positions(l::Lattice, v::AbstractVecOrMat) = reciprocal(l) * v
+get_scaled_positions(l::Lattice, v::AbstractVecOrMat) = reciprocal(l) * v
+
+"Alias  to `get_scaled_positions`"
+const scaled_positions = get_scaled_positions
 
 function wrap_positions(l::Lattice, v::AbstractVecOrMat)
-    scaled = scaled_positions(l, v)
+    scaled = get_scaled_positions(l, v)
     scaled .-= floor.(scaled)
     cellmat(l) * scaled
 end

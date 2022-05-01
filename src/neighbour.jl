@@ -36,7 +36,7 @@ end
 Constructed an ExtendedPointArray from a given structure
 """
 function ExtendedPointArray(cell::Cell, rcut)
-
+    rcut = convert(Float64, rcut)
     ni = nions(cell)
     shifts = CellBase.shift_vectors(cellmat(lattice(cell)), rcut;safe=false)
     indices = zeros(Int, ni * length(shifts))
@@ -106,7 +106,7 @@ end
 """
 Type for representing a neighbour list
 """
-struct NeighbourList{T}
+struct NeighbourList{T, N}
     ea::ExtendedPointArray{T}
     "Extended indice of the neighbours"
     extended_indices::Matrix{Int}
@@ -115,7 +115,7 @@ struct NeighbourList{T}
     "Distance to the neighbours"
     distance::Matrix{Float64}
     "Vector displacement to the neighbours"
-    vectors::Array{Float64, 3}
+    vectors::Array{SVector{N, Float64}, 2}
     "Number of neighbours"
     nneigh::Vector{Int}
     "Maximum number of neighbours that can be stored"
@@ -147,7 +147,7 @@ end
 
 Construct a NeighbourList from an extended point array for the points in the original cell
 """
-function NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false)
+function NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false, ndim=3)
     
     norig = length(ea.orig_positions)
     extended_indices = zeros(Int, nmax, norig)
@@ -158,7 +158,8 @@ function NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false)
     @assert rcut >= ea.rcut "Cut off radius is large that that of the periodic image cut off."
 
     # Save vectors or not
-    savevec ? vectors = fill(-1., 3, norig, nmax) : vectors = fill(-1., 1, 1, 1)
+    base = @SVector fill(-1., ndim)
+    savevec ? vectors = fill(base, nmax, norig) : vectors = fill(SA[-1., -1. , -1.], 1, 1)
     nl = NeighbourList(
         ea,
         extended_indices,
@@ -190,7 +191,7 @@ function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
     vectors = nl.vectors
     rcut = nl.rcut
     # Reset
-    fill!(vectors, -1.)
+    fill!(vectors, vectors[1] .* 0.)
     fill!(distance, -1.)
     fill!(orig_indices, 0)
     fill!(extended_indices, 0)
@@ -210,7 +211,7 @@ function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
                     extended_indices[ineigh, iorig] = j
                     # Store the index of the point in the original cell
                     orig_indices[ineigh, iorig] = ea.indices[j]
-                    savevec && (vectors[:, ineigh, iorig] .= posj .- posi)
+                    savevec && (vectors[ineigh, iorig] = posj .- posi)
                 end
             end
         end
@@ -272,13 +273,22 @@ NeighbourList(cell::Cell, rcut, nmax=100;savevec=false) = NeighbourList(Extended
 num_neighbours(nl::NeighbourList, iorig) = nl.nneigh[iorig]
 
 
+abstract type AbstractNLIterator end
+
 "Iterator interface for going through all neighbours"
-struct NLIterator
-    nl::NeighbourList
+struct NLIterator{T} <: AbstractNLIterator
+    nl::T
     iorig::Int
 end
 
-Base.length(nli::NLIterator) =  num_neighbours(nli.nl, nli.iorig)
+"Iterator interface for going through all neighbours"
+struct NLIteratorWithVector{T} <: AbstractNLIterator
+    nl::T
+    iorig::Int
+end
+
+
+Base.length(nli::AbstractNLIterator) =  num_neighbours(nli.nl, nli.iorig)
 
 function Base.iterate(nli::NLIterator, state=1)
     nl = nli.nl
@@ -289,8 +299,29 @@ function Base.iterate(nli::NLIterator, state=1)
     return (nl.orig_indices[state, iorig], nl.extended_indices[state, iorig], nl.distance[state, iorig]), state + 1
 end
 
+function Base.iterate(nli::NLIteratorWithVector, state=1)
+    nl = nli.nl
+    iorig = nli.iorig
+    if state > nl.nneigh[nli.iorig] 
+        return nothing
+    end
+    return (nl.orig_indices[state, iorig], nl.extended_indices[state, iorig], nl.distance[state, iorig], nl.vectors[state, iorig]), state + 1
+end
+
 """
 Iterate the neighbours of a site in the original cell.
 Returns a tuple of (original_index, extended_index, distance) for each iteration
 """
 eachneighbour(nl::NeighbourList, iorig) = NLIterator(nl, iorig)
+
+
+"""
+Iterate the neighbours of a site in the original cell.
+Returns a tuple of (original_index, extended_index, distance, vector) for each iteration
+"""
+function eachneighbourvector(nl::NeighbourList, iorig) 
+    @assert nl.has_vectors "NeighbourList is not build with distance vectors"
+    N = size(nl.vectors, 1)
+    svecs = reinterpret(SVector{N,Float64}, vec(nl.vectors))
+    NLIteratorWithVector(nl, iorig)
+end
