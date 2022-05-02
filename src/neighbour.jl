@@ -321,7 +321,5 @@ Returns a tuple of (original_index, extended_index, distance, vector) for each i
 """
 function eachneighbourvector(nl::NeighbourList, iorig) 
     @assert nl.has_vectors "NeighbourList is not build with distance vectors"
-    N = size(nl.vectors, 1)
-    svecs = reinterpret(SVector{N,Float64}, vec(nl.vectors))
     NLIteratorWithVector(nl, iorig)
 end
