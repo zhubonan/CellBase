@@ -2,7 +2,9 @@ using Printf
 using PeriodicTable
 using LinearAlgebra
 
-export Cell, nions, positions, species, atomic_numbers, lattice, volume, cellmat, cellvecs, wrap!, cellpar, natoms, sposarray
+export Cell, nions, positions, species, atomic_numbers, lattice, volume, get_cellmat, cellmat, cellvecs, wrap!, cellpar, natoms, sposarray
+export set_scaled_positions!, get_scaled_positions, set_cellmat!, set_positions!, get_positions, get_lattice
+
 """
 A Cell represents a periodic structure in three-dimensional space
 """
@@ -69,21 +71,25 @@ end
 
 # Basic interface 
 "Number of atoms in a structure"
-nions(structure::Cell) = length(structure.symbols)
+nions(cell::Cell) = length(cell.symbols)
 
 "Number of atoms in a structure"
 const natoms = nions
 
 "Positions of ions in a structure"
-function positions(structure::Cell{T}) where T
-    structure.positions
-end
+positions(cell::Cell) = cell.positions
+
+"Positions of ions in a structure (copy)"
+get_positions(cell::Cell) = copy(cell.positions)
 
 "Static array of positions"
 sposarray(structure::Cell{T}) where T = [SVector{3, T}(x) for x in eachcol(positions(structure))]
 
 "Species names"
 species(structure::Cell) = structure.symbols
+
+"Species names"
+get_species(structure::Cell) = copy(structure.symbols)
 
 "Return the atomic numbers"
 atomic_numbers(structure::Cell) = Int[elements[x].number for x in species(structure)]
@@ -93,6 +99,9 @@ atomic_numbers(structure::Cell) = Int[elements[x].number for x in species(struct
 "Lattice type of a structure"
 lattice(structure::Cell) = structure.lattice
 
+"Lattice type of a structure"
+get_lattice(structure::Cell) = deepcopy(structure.lattice)
+
 "Cell parameters type of a structure"
 cellpar(structure::Cell) = cellpar(lattice(structure))
 
@@ -101,6 +110,7 @@ volume(structure::Cell) = volume(lattice(structure))
 
 """Get the cell matrix of a structure with column vectors"""
 cellmat(structure::Cell) = cellmat(lattice(structure))
+get_cellmat(structure::Cell) = get_cellmat(lattice(structure))
 
 ## END ##
 
@@ -435,3 +445,16 @@ function wrap!(cell::Cell)
     scaled .-= floor.(scaled)
     set_scaled_positions!(cell, scaled)
 end
+
+function set_cellmat!(cell::Cell, mat;scale_positions=true)
+    if scale_positions
+        scaled_pos = get_scaled_positions(cell)
+        cellmat(cell) .= mat
+        set_scaled_positions!(cell, scaled_pos) 
+    else
+        cellmat(cell) .= mat
+    end
+    cell
+end
+
+set_positions!(cell::Cell, pos) = cell.positions .= pos

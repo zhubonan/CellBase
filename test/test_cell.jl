@@ -28,6 +28,10 @@ using CellBase
         @test CellBase.natoms(ss) == CellBase.natoms(s) * 8
         @test CellBase.cellpar(ss)[1:3] == CellBase.cellpar(s)[1:3] .* 2
         @test CellBase.cellpar(ss)[4:6] == CellBase.cellpar(s)[4:6]
+
+        @test get_cellmat(s) !== cellmat(s)
+        @test get_positions(s) !== positions(s)
+        @test get_lattice(s) !== lattice(s)
     end
 end
 
@@ -57,7 +61,9 @@ end
                      2 1 0
                      0 0 1])
         @test volume(l) == 2.0
-        @test cellmat(l) == l.matrix
+        @test cellmat(l) === l.matrix
+        @test get_cellmat(l) !== l.matrix
+        
         @test cellvecs(l)[1] == [2, 0, 0]
         @test cellvecs(l2)[1] == [2, 2, 0]
         site = Site([2.1, 0, 0], 1, :H)

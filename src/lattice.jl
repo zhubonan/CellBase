@@ -55,6 +55,8 @@ rec_cellmat(l::Lattice) = l.rec
 """Get a matrix of column vectors"""
 cellmat(lattice::Lattice) = lattice.matrix
 
+get_cellmat(lattice::Lattice) = copy(lattice.matrix)
+
 """Get a matrix of column vectors"""
 cellmat_row(lattice::Lattice) = copy(transpose(lattice.matrix))
 

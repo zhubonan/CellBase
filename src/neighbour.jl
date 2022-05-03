@@ -55,7 +55,7 @@ function ExtendedPointArray(cell::Cell, rcut)
         end
     end
     ExtendedPointArray(indices, shiftidx, shifts, [SVector{3}(x) for x in eachcol(pos_extended)], original_positions, 
-                       inoshift, rcut, cellmat(lattice(cell)))
+                       inoshift, rcut, copy(cellmat(lattice(cell))))
 end
 
 """
@@ -68,14 +68,20 @@ function rebuild!(ea::ExtendedPointArray, cell)
     if lattice_change
         newshifts = CellBase.shift_vectors(cellmat(lattice(cell)), ea.rcut;safe=false)
         # Number of vectors change
-        dl = length(newshifts) - length(ea.shiftvecs)
+        nnew = length(newshifts)
+        nold = length(ea.shiftvecs)
+        dl = nnew - nold
         if dl != 0
-            throw(ErrorException("Cannot rebuild if the nubmer of shifts have changed!"))
+            resize!(ea.shiftvecs, nnew)
+            # Also resize the positions array and indices
+            ntot = nnew * length(ea.orig_positions)
+            resize!(ea.positions, ntot)
+            resize!(ea.indices, ntot)
+            resize!(ea.shiftidx, ntot)
         end
         ea.shiftvecs .= newshifts
-    end
-    if lattice_change
-        # Lattice has changed = build based on the shift vectors
+
+        # Rebuild the extended arrays
         ea.orig_positions .= sposarray(cell)
         for (idx, pos_orig) in enumerate(ea.orig_positions)   # Each original positions
             for (ishift, shiftvec) in enumerate(ea.shiftvecs)   # Each shift positions
