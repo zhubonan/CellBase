@@ -52,10 +52,20 @@ reciprocal(l::Lattice) = l.rec
 "Reciprocal lattice (no 2pi factor)"
 rec_cellmat(l::Lattice) = l.rec
 
+"Update the reciprocal matrix - should be called everytime cell is changed"
+update_rec!(l::Lattice) = l.rec .= inv(l.matrix)
+
 """Get a matrix of column vectors"""
 cellmat(lattice::Lattice) = lattice.matrix
 
+"""Set the cell matrix and update the reciprocal lattice as well"""
+function set_cellmat!(lattice::Lattice, mat)
+    lattice.matrix .= mat
+    update_rec!(lattice)
+end
+
 get_cellmat(lattice::Lattice) = copy(lattice.matrix)
+get_rec_cellmat(lattice::Lattice) = copy(lattice.rec)
 
 """Get a matrix of column vectors"""
 cellmat_row(lattice::Lattice) = copy(transpose(lattice.matrix))

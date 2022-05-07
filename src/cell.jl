@@ -449,10 +449,10 @@ end
 function set_cellmat!(cell::Cell, mat;scale_positions=true)
     if scale_positions
         scaled_pos = get_scaled_positions(cell)
-        cellmat(cell) .= mat
+        set_cellmat!(lattice(cell), mat)
         set_scaled_positions!(cell, scaled_pos) 
     else
-        cellmat(cell) .= mat
+        set_cellmat!(lattice(cell), mat)
     end
     cell
 end
