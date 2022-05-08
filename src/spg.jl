@@ -2,7 +2,7 @@
 Interface for Spglib
 =#
 import Spglib
-import Spglib:Cell as SCell
+import Spglib:Cell as SCell, get_symmetry, get_international, get_dataset
 
 SCell(cell::Cell) = SCell(cellmat(cell), get_scaled_positions(cell), atomic_numbers(cell))
 
@@ -37,3 +37,5 @@ end
 @extend_scell_roundtrip refine_cell
 @extend_scell_roundtrip niggli_reduce
 @extend_scell_roundtrip delaunay_reduce
+
+export get_symmetry, get_dataset, get_international
