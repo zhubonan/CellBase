@@ -32,7 +32,7 @@ end
 
 Constructure the Cell type from lattice, positions and numbers
 """
-function Cell(lat::Lattice, numbers::Vector{Int}, positions::Matrix)
+function Cell(lat::Lattice, numbers::Vector{T}, positions::Matrix) where {T<:Real}
     species = [Symbol(elements[i].symbol) for i in numbers]
     @assert length(numbers) == size(positions, 2)
     Cell(lat, species, positions)

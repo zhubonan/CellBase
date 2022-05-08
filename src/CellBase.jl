@@ -9,5 +9,6 @@ include("lattice.jl")
 include("periodic.jl")
 include("cell.jl")
 include("neighbour.jl")
+include("spg.jl")
 
 end # module
