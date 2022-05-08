@@ -1,5 +1,6 @@
 using Test
 using CellBase
+import Spglib
 
 @testset "Cell" begin
     mat = Float64[
@@ -115,3 +116,21 @@ end
         @test list[1][2] == 64
         @test list[1][3] ≈ sqrt(50)
 end
+
+@testset "Spglib" begin
+    lattice = Lattice(10, 10, 10)
+    frac_pos = [
+        0 0.5 0.5 0.5 0
+        0 0.5 0.5 0. 0.5 
+        0 0.5 0.  0.5  0.5
+    ]
+    pos = cellmat(lattice) * frac_pos
+    testcell = Cell(Lattice(10, 10, 10), [1,2,3,3,3], pos) 
+    @test all(CellBase.SCell(testcell).lattice .== cellmat(lattice))
+    scell = Spglib.Cell(testcell)
+    cell2 = Cell(scell) 
+    @test all(cell2.positions .== testcell.positions)
+    
+    @test Spglib.get_international(testcell)  == "Pm-3m"
+end
+
