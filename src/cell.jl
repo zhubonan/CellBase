@@ -458,3 +458,15 @@ function set_cellmat!(cell::Cell, mat;scale_positions=true)
 end
 
 set_positions!(cell::Cell, pos) = cell.positions .= pos
+
+"""
+    rattle!(cell::Cell, amp)
+
+Rattle the positions of the cell for a given maximum amplitude (uniform distribution).
+"""
+function rattle!(cell::Cell, amp)
+    dev = rand(length(positions(cell)))
+    for i in eachindex(cell.positions)
+        cell.positions[i] += (rand() - 0.5 ) * 2amp 
+    end
+end
