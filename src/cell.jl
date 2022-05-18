@@ -3,7 +3,7 @@ using PeriodicTable
 using LinearAlgebra
 
 export Cell, nions, positions, species, atomic_numbers, lattice, volume, get_cellmat, cellmat, cellvecs, wrap!, cellpar, natoms, sposarray
-export set_scaled_positions!, get_scaled_positions, set_cellmat!, set_positions!, get_positions, get_lattice
+export set_scaled_positions!, get_scaled_positions, set_cellmat!, set_positions!, get_positions, get_lattice, get_cellmat
 
 """
 A Cell represents a periodic structure in three-dimensional space

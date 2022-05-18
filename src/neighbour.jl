@@ -5,6 +5,9 @@ import Base
 export ExtendedPointArray, NeighbourList, eachneighbour, nions_extended, nions_orig, num_neighbours
 export rebuild!, update!
 
+"Maximum number of shift vectors"
+const MAX_SHIFTS=10000
+
 
 """
 Represent an array of points after expansion by periodic boundary
@@ -21,7 +24,6 @@ struct ExtendedPointArray{T}
     "original Positions"
     orig_positions::Vector{T}
     "Index of of the all-zero shift vector"
-    inoshift::Int
     rcut::Float64
     lattice::Matrix{Float64}
 end
@@ -42,7 +44,6 @@ function ExtendedPointArray(cell::Cell, rcut)
     indices = zeros(Int, ni * length(shifts))
     shiftidx = zeros(Int, ni * length(shifts))
     pos_extended = zeros(eltype(positions(cell)), 3, ni * length(shifts))
-    inoshift = findfirst(x -> all( x .== 0.), shifts)
 
     i = 1
     original_positions = sposarray(cell)
@@ -54,8 +55,7 @@ function ExtendedPointArray(cell::Cell, rcut)
             i += 1
         end
     end
-    ExtendedPointArray(indices, shiftidx, shifts, [SVector{3}(x) for x in eachcol(pos_extended)], original_positions, 
-                       inoshift, rcut, copy(cellmat(lattice(cell))))
+    ExtendedPointArray(indices, shiftidx, shifts, [SVector{3}(x) for x in eachcol(pos_extended)], original_positions, rcut, copy(cellmat(lattice(cell))))
 end
 
 """
@@ -71,6 +71,7 @@ function rebuild!(ea::ExtendedPointArray, cell)
         nnew = length(newshifts)
         nold = length(ea.shiftvecs)
         dl = nnew - nold
+        @assert nnew < MAX_SHIFTS "Too many lattice shifts request ($nnew) - possible ill shaped cell?"
         if dl != 0
             resize!(ea.shiftvecs, nnew)
             # Also resize the positions array and indices
@@ -130,6 +131,12 @@ struct NeighbourList{T, N}
     has_vectors::Bool
     rcut::Float64
 end
+
+
+allzeros(svec::SVector{1}) = (svec[1] == 0)
+allzeros(svec::SVector{2}) = (svec[1] == 0) && (svec[2] == 0) 
+allzeros(svec::SVector{3}) = (svec[1] == 0) && (svec[2] == 0) && (svec[3] == 0)
+allzeros(svec::SVector{4}) = (svec[1] == 0) && (svec[2] == 0) && (svec[3] == 0) && (svec[4] == 0)
 
 "Number of ions in the original cell"
 nions_orig(n::ExtendedPointArray) = length(n.orig_positions)
@@ -206,7 +213,8 @@ function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
     for (iorig, posi) in enumerate(ea.orig_positions)
         ineigh = 0
         for (j, posj) in enumerate(ea.positions)
-            (ea.indices[j] == iorig) && (ea.shiftidx[j] == ea.inoshift) && continue
+            # Skip if it is the same point 
+            (ea.indices[j] == iorig) && (allzeros(ea.shiftvecs[ea.shiftidx[j]])) && continue
             dist = distance_between(posj, posi)
             # Store the information if the distance is smaller than the cut off
             if dist < rcut
