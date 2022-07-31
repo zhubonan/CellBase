@@ -6,7 +6,19 @@ export Cell, nions, positions, species, atomic_numbers, lattice, volume, get_cel
 export set_scaled_positions!, get_scaled_positions, set_cellmat!, set_positions!, get_positions, get_lattice, get_cellmat
 
 """
-A Cell represents a periodic structure in three-dimensional space
+A Cell represents a periodic structure in three-dimensional space.
+
+Defined as:
+```julia
+mutable struct Cell{T}
+    lattice::Lattice{T}                 # Lattice of the structure
+    symbols::Vector{Symbol}
+    positions::Matrix{T}
+    arrays::Dict{Symbol, AbstractArray}        # Any additional arrays
+    metadata::Dict
+end
+```
+
 """
 mutable struct Cell{T}
     lattice::Lattice{T}                 # Lattice of the structure
@@ -55,6 +67,8 @@ end
 
 
 """
+    clip(s::Cell, mask::AbstractVector)
+
 Clip a structure with a given indexing array
 """
 function clip(s::Cell, mask::AbstractVector)
@@ -70,78 +84,158 @@ end
 
 
 # Basic interface 
-"Number of atoms in a structure"
+"""
+    nions(cell::Cell)
+
+Return number of atoms in a structure.
+"""
 nions(cell::Cell) = length(cell.symbols)
 
-"Number of atoms in a structure"
 const natoms = nions
+@doc """
+    natoms(cell::Cell)
 
-"Positions of ions in a structure"
+Return number of atoms in a structure.
+"""
+natoms
+
+"""
+    positions(cell::Cell)
+
+Return positions (cartesian coordinates) of the atoms in a structure.
+"""
 positions(cell::Cell) = cell.positions
 
-"Positions of ions in a structure (copy)"
+
+"""
+    get_positions(cell::Cell)
+
+Return a *copy* of the positions (cartesian coordinates) of the atoms in a structure.
+"""
 get_positions(cell::Cell) = copy(cell.positions)
 
-"Static array of positions"
+"""
+    sposarray(cell::Cell)
+
+Return the positions as a Vector of static arrays.
+The returned array can provide improved performance for certain type of operations.
+"""
 sposarray(structure::Cell{T}) where T = [SVector{3, T}(x) for x in eachcol(positions(structure))]
 
-"Species names"
+"""
+    species(structure::Cell)
+
+Return a Vector of species names.
+"""
 species(structure::Cell) = structure.symbols
 
-"Species names"
+"""
+    get_species(structure::Cell)
+
+Return a Vector (copy) of species names.
+"""
 get_species(structure::Cell) = copy(structure.symbols)
 
-"Return the atomic numbers"
+"""
+    atomic_numbers(structure::Cell)
+
+Return a Vector of the atomic numbers.
+"""
 atomic_numbers(structure::Cell) = Int[elements[x].number for x in species(structure)]
 
 ## Wrapper for the Lattice ###
 
-"Lattice type of a structure"
+"""
+    lattice(structure::Cell)
+
+Return the `Lattice` instance.
+"""
 lattice(structure::Cell) = structure.lattice
 
-"Lattice type of a structure"
+"""
+    get_lattice(structure::Cell)
+
+Return the `Lattice` instance (copy).
+"""
 get_lattice(structure::Cell) = deepcopy(structure.lattice)
 
-"Cell parameters type of a structure"
+"""
+    cellpar(structure::Cell)
+
+Return the lattice parameters.
+"""
 cellpar(structure::Cell) = cellpar(lattice(structure))
 
-"Volume of a structure"
+"""
+    volume(structure::Cell)
+
+Return the volume of the cell.
+"""
 volume(structure::Cell) = volume(lattice(structure))
 
-"""Get the cell matrix of a structure with column vectors"""
+"""
+    cellmat(structure::Cell)
+
+Return the matrix of lattice vectors.
+"""
 cellmat(structure::Cell) = cellmat(lattice(structure))
+
+"""
+    get_cellmat(structure::Cell)
+
+Return the matrix of lattice vectors(copy).
+"""
 get_cellmat(structure::Cell) = get_cellmat(lattice(structure))
 
 ## END ##
 
 
-"Get additional array"
+"""
+    array(structure::Cell, arrayname::Symbol)
+
+Return the additional array stored in the `Cell` object.
+"""
 array(structure::Cell, arrayname::Symbol) = structure.arrays[arrayname]
 
-"Names of the arrays in a Cell"
+"""
+    arraynames(structure::Cell)
+
+Return the names of additional arrays.
+"""
 arraynames(structure::Cell) = keys(structure.arrays)
 
-"Number of sets in a structures"
-nsets(structure::Cell) = length(unique(structure.set_indices))
+"""
+    metadata(structure::Cell)
 
-"""Indices for the sets"""
-set_indices(structure::Cell) = structure.set_indices
-
-"""metadata dictionary"""
+Return the `metadata` dictionary. 
+"""
 metadata(structure::Cell) = structure.metadata
 
-"""Attach metadata dictionary"""
+"""
+    attachmetadata!(structure::Cell, metadata::Dict)
+
+Replace `metadata` with an existing dictionary.
+"""
 attachmetadata!(structure::Cell, metadata::Dict) = structure.metadata = metadata
 
-"""Number of formula units"""
+"""
+    num_fu(structure::Cell)
+
+Return the number of formula units.
+"""
 num_fu(structure::Cell) = formula_and_factor(structure)[2]
 
-"Reduced formula of a structures"
+"""
+    reduced_fu(structure::Cell)
+
+Return the reduced formula.
+"""
 reduced_fu(structure::Cell) = formula_and_factor(structure)[1]
 
 """
-Sort symbols by atomic numbers
-NOTE: dose not handle cases where the symbol is not an element!!!
+    sorted_symbols(symbols)
+
+Return sorted symbols by atomic numbers.
 """
 function sorted_symbols(symbols)
     z_array = [elements[sp].number for sp in symbols]
@@ -149,7 +243,11 @@ function sorted_symbols(symbols)
     return symbols[perm]
 end
 
-"""Reduced formula and number of units in a structure"""
+"""
+    formula_and_factor(structure::Cell)
+
+Return reduced formula and associated factor.
+"""
 function formula_and_factor(structure::Cell)
 
     # Check if computed results already exists
@@ -186,14 +284,78 @@ end
 """
     specindex(structure::Cell)
 
-Return the unique species and integer based indices for each Site 
+Return the unique species and integer based indices for each atom.
 """
 function specindex(structure)
     # Mapping between the speices as symbols and as intgers
     unique_spec = unique(species(structure))
-    nunique = length(unique_spec)
     spec_indices = [findfirst(x-> x==sym, unique_spec) for sym in species(structure)]
     return unique_spec, spec_indices
+end
+
+"""
+    get_fraction_positions(cell::Cell)
+
+Return fractional positions of the cell.
+"""
+function get_scaled_positions(cell::Cell)
+    rec_cellmat(lattice(cell))  * positions(cell)
+end
+
+"""
+    set_scaled_positions!(cell::Cell, scaled::Matrix)
+
+Set scaled positions for a cell.
+"""
+function set_scaled_positions!(cell::Cell, scaled::Matrix)
+    cell.positions .= cellmat(cell) * scaled
+end
+
+"""
+    wrap!(cell::Cell)
+
+Wrap atom outside of the lattice back into the box defined by the lattice vectors.
+"""
+function wrap!(cell::Cell)
+    scaled = get_scaled_positions(cell)
+    scaled .-= floor.(scaled)
+    set_scaled_positions!(cell, scaled)
+end
+
+"""
+    set_cellmat!(cell::Cell, mat;scale_positions=true)
+
+Update the `Lattice` with a new matrix of lattice vectors. 
+Scale of the existing postions if needed.
+"""
+function set_cellmat!(cell::Cell, mat;scale_positions=true)
+    if scale_positions
+        scaled_pos = get_scaled_positions(cell)
+        set_cellmat!(lattice(cell), mat)
+        set_scaled_positions!(cell, scaled_pos) 
+    else
+        set_cellmat!(lattice(cell), mat)
+    end
+    cell
+end
+
+"""
+    set_positions!(cell::Cell, pos)
+
+Set the positions of the `Cell` with a new matrix.
+"""
+set_positions!(cell::Cell, pos) = cell.positions .= pos
+
+"""
+    rattle!(cell::Cell, amp)
+
+Rattle the positions of the cell for a given maximum amplitude (uniform distribution).
+"""
+function rattle!(cell::Cell, amp)
+    dev = rand(length(positions(cell)))
+    for i in eachindex(cell.positions)
+        cell.positions[i] += (rand() - 0.5 ) * 2amp 
+    end
 end
 
 function Base.show(io::IO, s::Cell)
@@ -223,6 +385,10 @@ end
     distance_matrix(structure::Cell; mic=true)
 
 Compute the distance matrix for the given structure, using the minimum image convention (or not).
+
+Note the returned matrix does not expand the cell. The distance matrix cannot be safety used for obtaining the minimum separations.
+For example, a structure with a single atom would be a distance matrix containing only zero.
+
 """
 function distance_matrix(structure::Cell)
 
@@ -252,7 +418,11 @@ function distance_matrix(structure::Cell)
     dmat
 end
 
+"""
+    distance_squared_between(posmat::Matrix, i, j, svec::Matrix, ishift)
 
+Return the squared distance between two positions stored in a matrix and shift vector.
+"""
 function distance_squared_between(posmat::Matrix, i, j, svec::Matrix, ishift)
     d2 = 0.
     for n=1:3
@@ -264,9 +434,9 @@ end
 
 
 """
-    check_minsep(structure::Strucuter, minsep::Dict)
+    check_minsep(structure::Cell, minsep::Dict)
 
-Check if the minimum spearation constraints are satified. Minimum separations are supplied
+Check if the minimum separation constraints are satisfied. Minimum separations are supplied
 as an dictionary where the global version under the :global key. To supply the minimum separations
 between A and B, pass Dict((:A=>:B)=>1.0).
 Return true or false.
@@ -291,8 +461,8 @@ end
 """
     minsep_matrix(structure::Cell, minsep::Dict)
 
-Initialis the minimum separation matrix and species mapping.
-Returns the unique species, integer indexed sepcies and the minimum separation matrix.
+Initialise the minimum separation matrix and species mapping.
+Returns the unique species, integer indexed species and the minimum separation matrix.
 """
 function compute_minsep_mat(structure, minsep::Dict{T, Float64}) where T
     unique_spec, spec_indices = specindex(structure)
@@ -359,6 +529,7 @@ end
     fingerprint(s::Cell; dmat=distance_matrix(s), weighted=true, cut_bl=3.0)
 
 Computed the fingerprint vector based on simple sorted pair-wise distances.
+NOTE: Does not work for single atom cell!!
 """
 function fingerprint(s::Cell; dmat=distance_matrix(s), weighted=true, cut_bl=3.0)
     # Cut off distance based on minimum bond length
@@ -417,56 +588,4 @@ function fingerprint_distance(f1::AbstractVector, f2::AbstractVector;lim=Inf)
         ncomp += 1
     end
     d / comp
-end
-
-"""
-    get_fraction_positions(cell::Cell)
-
-Return fractional positions of the cell
-"""
-function get_scaled_positions(cell::Cell)
-    rec_cellmat(lattice(cell))  * positions(cell)
-end
-
-"""
-Set scaled positions for a cell
-"""
-function set_scaled_positions!(cell::Cell, scaled::Matrix)
-    cell.positions .= cellmat(cell) * scaled
-end
-
-"""
-    wrap!(cell::Cell)
-
-Wrap sites outside of the lattice back into the lattice
-"""
-function wrap!(cell::Cell)
-    scaled = get_scaled_positions(cell)
-    scaled .-= floor.(scaled)
-    set_scaled_positions!(cell, scaled)
-end
-
-function set_cellmat!(cell::Cell, mat;scale_positions=true)
-    if scale_positions
-        scaled_pos = get_scaled_positions(cell)
-        set_cellmat!(lattice(cell), mat)
-        set_scaled_positions!(cell, scaled_pos) 
-    else
-        set_cellmat!(lattice(cell), mat)
-    end
-    cell
-end
-
-set_positions!(cell::Cell, pos) = cell.positions .= pos
-
-"""
-    rattle!(cell::Cell, amp)
-
-Rattle the positions of the cell for a given maximum amplitude (uniform distribution).
-"""
-function rattle!(cell::Cell, amp)
-    dev = rand(length(positions(cell)))
-    for i in eachindex(cell.positions)
-        cell.positions[i] += (rand() - 0.5 ) * 2amp 
-    end
 end

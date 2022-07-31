@@ -11,6 +11,11 @@ struct Lattice{T}
     rec::Matrix{T}
 end
 
+"""
+    Lattice(matrix::Matrix{T}) where T
+
+Construct a `Lattice` from a matrix of column vectors.
+"""
 function Lattice(matrix::Matrix{T}) where T
     Lattice(matrix, inv(matrix))
 end
@@ -19,25 +24,41 @@ function Lattice(matrix::Matrix{T}) where {T<:Integer}
     Lattice(convert.(Float64, matrix), inv(matrix))
 end
 
-"""Construct from lattice vectors"""
+"""
+    Lattice(va::Vector{T}, vb::Vector{T}, vc::Vector{T}) where T
+
+Construct a `Lattice` from three lattice vectors.
+"""
 function Lattice(va::Vector{T}, vb::Vector{T}, vc::Vector{T}) where T
     cellmat = hcat(va, vb, vc)
     Lattice(cellmat)
 end
 
-"""Construct from lattice parameters"""
+"""
+    Lattice(cellpar::Vector{T}) where T
+
+Construct a `Lattice` from a six-vector of lattice parameters.
+"""
 function Lattice(cellpar::Vector{T}) where T
     cellmat = cellpar2mat(cellpar...)
     Lattice(cellmat)
 end
 
-"""Construct from lattice parameters"""
+"""
+    Lattice(a::T, b::T, c::T, α::T, β::T, γ::T) where T
+
+Construct a `Lattice` from lattice parameters.
+"""
 function Lattice(a::T, b::T, c::T, α::T, β::T, γ::T) where T
     cellmat = cellpar2mat(a, b, c, α, β, γ)
     Lattice(cellmat)
 end
 
-"""Construct from three lattice parameters"""
+"""
+    Lattice(a::T, b::T, c::T) where T <: Real
+
+Construct a `Lattice` with orthogonal lattice vectors.
+"""
 function Lattice(a::T, b::T, c::T) where T <: Real
     cellmat = zeros(T, 3, 3)
     cellmat[1, 1] = a
@@ -46,25 +67,48 @@ function Lattice(a::T, b::T, c::T) where T <: Real
     Lattice(cellmat)
 end
 
-"Reciprocal lattice (no 2pi factor)"
+"""
+    reciprocal(l::Lattice)
+
+Returns the matrix of reciprocal lattice vectors (without the ``2\\pi`` factor).
+"""
 reciprocal(l::Lattice) = l.rec
 
-"Reciprocal lattice (no 2pi factor)"
-rec_cellmat(l::Lattice) = l.rec
+"""
+    rec_cellmat(l::Lattice)
 
-"Update the reciprocal matrix - should be called everytime cell is changed"
+Returns the matrix of reciprocal lattice vectors (without the ``2\\pi`` factor).
+"""
+rec_cellmat(l::Lattice) = reciprocal(l)
+
+"""
+    update_rec!(l::Lattice)
+
+Update the reciprocal matrix - *this should be called everytime cell is changed.*
+"""
 update_rec!(l::Lattice) = l.rec .= inv(l.matrix)
 
-"""Get a matrix of column vectors"""
+"""
+    cellmat(lattice::Lattice)
+
+Return the matrix of column vectors.
+"""
 cellmat(lattice::Lattice) = lattice.matrix
 
-"""Set the cell matrix and update the reciprocal lattice as well"""
+"""
+    set_cellmat!(lattice::Lattice, mat)
+
+Set the cell matrix and update the reciprocal cell matrix.
+"""
 function set_cellmat!(lattice::Lattice, mat)
     lattice.matrix .= mat
     update_rec!(lattice)
 end
 
+"""Return a copy of the cell matrix"""
 get_cellmat(lattice::Lattice) = copy(lattice.matrix)
+
+"""Return a copy of the reciprocal cell matrix"""
 get_rec_cellmat(lattice::Lattice) = copy(lattice.rec)
 
 """Get a matrix of column vectors"""
@@ -73,13 +117,17 @@ cellmat_row(lattice::Lattice) = copy(transpose(lattice.matrix))
 """Lattice vectors"""
 cellvecs(lattice::Lattice) = lattice.matrix[:, 1], lattice.matrix[:, 2], lattice.matrix[:, 3]
 
-"""Volume of the cell"""
+"Return the volume of the cell"
 function volume(lattice::Lattice)
     a, b, c = cellvecs(lattice)
     dot(a, cross(b, c))
 end
 
-"""Cell parameters"""
+"""
+    cellpar(lattice::Lattice)
+
+Return the lattice parameters as a six-vector.
+"""
 cellpar(lattice::Lattice) = vec2cellpar(cellvecs(lattice)...)
 
 "Fraction positions of a site"
@@ -108,7 +156,7 @@ end
 """
     random_vec_in_cell(cell::Matrix{T}; scales::Vector=ones(size(cell)[1])) where T
 
-Get an randmo vector within a unit cell. The cell is a matrix made of column vectors.
+Get an random vector within a unit cell. The cell is a matrix made of column vectors.
 """
 function random_vec_in_cell(cell::Matrix{T}; scales::Vector=ones(size(cell)[1])) where T
     out = zeros(T,  size(cell)[2])
@@ -123,12 +171,21 @@ function random_vec(l::Lattice)
     random_vec_in_cell(cellmat(l))
 end
 
-"Return scaled positions"
+"""
+    get_scaled_positions(l::Lattice, v::AbstractVecOrMat) = reciprocal(l) * v
+
+Return the scaled positions.
+"""
 get_scaled_positions(l::Lattice, v::AbstractVecOrMat) = reciprocal(l) * v
 
 "Alias  to `get_scaled_positions`"
 const scaled_positions = get_scaled_positions
 
+"""
+    wrap_positions(l::Lattice, v::AbstractVecOrMat)
+
+Wrap positions back into the box defined by the cell vectors.
+"""
 function wrap_positions(l::Lattice, v::AbstractVecOrMat)
     scaled = get_scaled_positions(l, v)
     scaled .-= floor.(scaled)
@@ -229,7 +286,11 @@ function mic_shiftvecs(rcell::AbstractMatrix)
     rcell * shifts
 end
 
+"""
+    mic(l::Lattice, vec::AbstractVecOrMat)
 
+Compute the minimum-image convention representation of a series of displacement vectors.
+"""
 function mic(l::Lattice, vec::AbstractVecOrMat)
 
     vmic, dmic = mic_naive(l, vec)

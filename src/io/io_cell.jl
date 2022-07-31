@@ -225,10 +225,10 @@ function find_block(lines, block_name)
         if startswith(line, "#")
             continue
         elseif startswith(uppercase(line), b_start)
-            current_block_name = split(line)[2]
+            current_block_name = uppercase(split(line)[2])
             in_block = true
         elseif in_block && startswith(uppercase(line), "%ENDBLOCK")
-            bname = split(line)[2]
+            bname = uppercase(split(line)[2])
             @assert bname == block_name "Block <$(block_name)> ends as <$(bname)>"
             break
         elseif in_block
