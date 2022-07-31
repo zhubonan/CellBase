@@ -1,11 +1,26 @@
 #=
 Interface for Spglib
 =#
-import Spglib
-import Spglib:Cell as SCell, get_symmetry, get_international, get_dataset
 
+
+import Spglib
+import Spglib: get_symmetry, get_international, get_dataset
+
+"Alias for `Spglib.Cell`"
+const SCell = Spglib.Cell
+
+"""
+    SCell(cell::Cell)
+
+Construct `Spglib.Cell` from `Cell` type.
+"""
 SCell(cell::Cell) = SCell(cellmat(cell), get_scaled_positions(cell), atomic_numbers(cell))
 
+"""
+    Cell(cell::SCell)
+
+Return a `Cell` object from `Spglib.Cell`.
+"""
 function Cell(cell::SCell)
     Cell(
         Lattice(collect(cell.lattice)),
@@ -14,14 +29,34 @@ function Cell(cell::SCell)
     )
 end
 
-"Extend the Spglib methods"
+"""
+Macro for extending the Spglib methods.
+
+Usage:
+
+```
+@extend_scell get_dataset
+```
+
+will allow the `get_dataset` method of Spglib to be used for `Cell` type.
+"""
 macro extend_scell(func)
     quote
         Spglib.$(func)(cell::Cell, args...;kwargs...) = Spglib.$(func)(SCell(cell), args...;kwargs...)
     end
 end
 
-"Extend the Spglib methods that returns a Spglib.Cell"
+"""
+Macro for extending the Spglib methods and convert returned `Spglib.Cell` to `Cell`.
+
+Usage:
+
+```
+@extend_scell_roundtrip standardize_cell
+```
+
+will allow the `standardize_cell` method to be used and the returned `Spglib.Cell` is converted to `Cell`.
+"""
 macro extend_scell_roundtrip(func)
     quote
         Spglib.$(func)(cell::Cell, args...;kwargs...) = Cell(Spglib.$(func)(SCell(cell), args...;kwargs...))
@@ -38,4 +73,4 @@ end
 @extend_scell_roundtrip niggli_reduce
 @extend_scell_roundtrip delaunay_reduce
 
-export get_symmetry, get_dataset, get_international
+export get_symmetry, get_dataset, get_international, refine_cell, niggli_reduce, delaunay_reduce

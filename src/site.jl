@@ -1,3 +1,9 @@
+#=
+Representation of single atomic Sites
+
+The `Site` type is deprecated.
+=#
+
 using Printf
 using StaticArrays
 export Site, distance_between, distance_squared_between

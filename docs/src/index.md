@@ -25,22 +25,10 @@ For example, the first lattice vector should be accessed as `cellmat(lattice)[:,
     The reciprocal lattice is also stored for quick access, however, this means that whenever the matrix is directly modified, the store reciprocal lattice vectors should be updated as well.
     Hence, the `set_cellmat!` function should be used for updating the cell matrix, which does this is automatically.
 
-
-```@docs
-Lattice
-Lattice(matrix::Matrix{T}) where T
-Lattice(va::Vector{T}, vb::Vector{T}, vc::Vector{T}) where T
-cellmat
-get_cellmat
-reciprocal
-rec_cellmat
-get_rec_cellmat
-update_rec!
-cellvecs(lattice::Lattice)
-volume(lattice::Lattice)
-cellpar(lattice::Lattice)
-wrap_positions(l::Lattice, v::AbstractVecOrMat)
-mic
+```@autodocs
+Modules = [CellBase]
+Order = [:type, :function]
+Pages = ["lattice.jl", "periodic.jl"]
 ```
 
 ## `Cell` type
@@ -57,4 +45,46 @@ Additional metadata can be also be stored under `metadata`, which is a `Dict{Any
 Modules = [CellBase]
 Order = [:type, :function]
 Pages = ["cell.jl"]
+```
+
+
+## [Spglib.jl](https://github.com/singularitti/Spglib.jl) interface
+
+The routine in `Spglib.jl` (which wraps the [spglib](https://spglib.github.io/spglib/) libraray) can be used for finding symmetry and performing reduction of the `Cell` type.
+
+```@autodocs
+Modules = [CellBase]
+Pages = ["spg.jl"]
+```
+
+
+## Misc utils
+
+Miscellaneous utility functions.
+
+```@autodocs
+Modules = [CellBase]
+Order = [:type, :function]
+Pages = ["minkowski.jl", "mathutils.jl"]
+```
+
+
+## Neighbour lists
+
+Type and functions for handling neighbour lists.
+
+```@autodocs
+Modules = [CellBase]
+Order = [:type, :function]
+Pages = ["neighbour.jl"]
+```
+
+## IO
+
+Code for read/writing file of crystal structures.
+
+```@autodocs
+Modules = [CellBase, CellBase.CellIO, CellBase.DotCastep, CellBase.SheapIO]
+Order = [:type, :function]
+Pages = ["io/io_cell.jl", "io/io_res.jl", "io/io_xyz.jl", "io/io_dotcastep.jl", "io/io_sheap.jl"]
 ```
