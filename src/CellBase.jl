@@ -10,5 +10,6 @@ include("periodic.jl")
 include("cell.jl")
 include("neighbour.jl")
 include("spg.jl")
+include("io/io.jl")
 
 end # module
