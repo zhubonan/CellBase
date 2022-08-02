@@ -43,7 +43,7 @@ function Composition(comp::Dict)
 end
 
 
-function Base.getindex(t::Composition, key) 
+function Base.getindex(t::Composition, key::Symbol) 
     idx = findfirst(x -> x == key, t.species)
     isnothing(idx) && return 0.
     t.counts[idx]
@@ -71,3 +71,77 @@ function Composition(cell::Cell)
     end
     Composition(unique_sp, num_atoms)
 end
+
+"""
+    Composition(string::AbstractString)
+
+Construct composition from a string.
+"""
+function Composition(string::AbstractString)
+    Composition(parse_formula_with_bracket(string))
+end
+
+"""
+    parse_formula(formula)
+
+Parse a formula into a dictionary.
+"""
+function parse_formula(formula, factor=1.0)
+    reg = r"([A-Z][a-z]*)\s*([\.eE\d]*)"
+    output = Dict{Symbol, Float64}()
+    for match in eachmatch(reg, formula)
+        num = 1.0
+        match[2] != "" && (num = parse(Float64, match[2]))
+        x = get(output, Symbol(match[1]), 0.)
+        x +=  num * factor
+        output[Symbol(match[1])] = x
+    end
+    return output
+end
+
+"""
+    expand_bracket(formula)
+
+Return a formula with bracket expanded.
+"""
+function expand_bracket(formula)
+    reg_bracket = r"\(([^\(\)]+)\)\s*([\.eE\d]*)"
+    m = match(reg_bracket, formula)
+    if !isnothing(m)
+        # Expanding is needed
+        if m[2] == ""
+            factor = 1.0
+        else
+            factor = parse(Float64, m[2])
+        end
+        # Parse the contant inside the bracket
+        inner = parse_formula(m[1], factor)
+        expanded_sym = join(["$(sym)$(num)" for (sym, num) in inner])
+        formula = replace(formula, m.match=>expanded_sym)
+        return expand_bracket(formula)
+    end
+    return formula
+end
+
+"""
+    parse_formula_with_bracket(formula)
+
+Parse formula and expand the bracket if necessary.
+"""
+function parse_formula_with_bracket(formula)
+    expanded = expand_bracket(formula)
+    return parse_formula(expanded)
+end
+
+
+function Base.:+(a::Composition, b::Composition) 
+    all_keys = unique(vcat(keys(a), keys(b)))
+    nums = zeros(Float64, length(all_keys))
+    for (i, key) in enumerate(all_keys)
+        nums[i] = a[key] + b[key]
+    end
+    Composition(all_keys, nums)
+end
+
+Base.:*(a::Composition, b::Real) = Composition(a.species, a.counts .* b)
+Base.:/(a::Composition, b::Real) = Composition(a.species, a.counts ./ b)
