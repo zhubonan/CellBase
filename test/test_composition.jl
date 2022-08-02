@@ -26,4 +26,10 @@ using CellBase: Composition, Cell, Lattice
     @test c3[:O] == 6.0
     @test c3[:F] == 3.0
     @test c3[:C] == 3.0
+
+    c1 = Composition("C3O4") * 2
+    @test c1[:C] == 6.0
+
+    c1 = Composition("C3O4") / 2
+    @test c1[:C] == 1.5
 end
