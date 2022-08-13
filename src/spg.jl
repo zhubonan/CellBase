@@ -22,10 +22,15 @@ SCell(cell::Cell) = SCell(cellmat(cell), get_scaled_positions(cell), atomic_numb
 Return a `Cell` object from `Spglib.Cell`.
 """
 function Cell(cell::SCell)
+    # Collect positions
+    pos = zeros(Float64, 3, length(cell.positions))
+    for i in 1:length(cell.positions)
+        pos[:, i] .= cell.lattice * cell.positions[i]
+    end
     Cell(
         Lattice(collect(cell.lattice)),
         collect(cell.types),
-        collect(cell.lattice * cell.positions),
+        pos
     )
 end
 
