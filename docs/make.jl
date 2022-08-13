@@ -16,5 +16,4 @@ deploydocs(
     devurl="master",
     target = "build",
     branch = "gh-pages",
-    versions = ["stable" => "v^", "v#.#" ]   
 )
