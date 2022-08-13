@@ -1,6 +1,6 @@
 ## CellBase
 
-![[Documentation](https://img.shields.io/badge/docs-master-blue.svg)](htttps://zhubonan.github.io/CellBase)
+[![Documentation](https://img.shields.io/badge/docs-master-blue.svg)](htttps://zhubonan.github.io/CellBase)
 
 Base code and routines for building/manipulating periodic crystal structures.
 Hopefully useful for more complex projects with specific applications.
