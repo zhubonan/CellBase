@@ -18,6 +18,21 @@ using Test
         cell = CellBase.read_cell(joinpath(this_dir..., "Si2.cell"))
         @test species(cell) == [:Si, :Si]
         @test cellmat(cell)[1] ≈ 2.69546455  atol=1e-5
+
+        # Test writing CEll file
+        pos = rand(3,3)
+        latt = rand(3,3)
+        tmp, f = mktemp()
+        CellBase.CellIO.write_cell(f, latt, pos, [:H, :H, :H])
+        close(f)
+        celltmp = CellBase.read_cell(tmp)
+        @test all(cellmat(celltmp) .== latt)
+        @test all(positions(celltmp) .== pos)
+        rm(tmp)
+
+        CellBase.write_cell(tmp, celltmp)
+        celltmp2 = CellBase.read_cell(tmp)
+        @test all(cellmat(celltmp2) .== cellmat(celltmp))
     end
 
     @testset "CASTEP" begin
@@ -26,4 +41,5 @@ using Test
         snap = snapshots[1]
         @test snap.forces[1] ≈ -3.20036 
     end
+
 end

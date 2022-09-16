@@ -284,6 +284,27 @@ function filter_block(lines, only::Vector{T}) where T<:AbstractString
     return out_lines
 end
 
+# Writer
+function write_cell(handle::IO, latt, pos, species)
+    write(handle, "%BLOCK LATTICE_CART\n")
+    for (a, b, c) in eachcol(latt)
+        write(handle, " $(a) $(b) $(c)\n")
+    end
+    write(handle, "%ENDBLOCK LATTICE_CART\n")
+
+    write(handle, "%BLOCK POSITIONS_ABS\n")
+    for (sym, (a, b, c)) in zip(species, eachcol(pos))
+        write(handle, "$(sym) $(a) $(b) $(c)\n")
+    end
+    write(handle, "%ENDBLOCK POSITIONS_ABS\n")
+end
+
+function write_cell(fname::AbstractString, latt, pos, species)
+    open(fname, "w") do handle
+        write_cell(handle, latt, pos, species)
+    end
+end
+
 end # Module cell IO
 
 using .CellIO
@@ -294,3 +315,9 @@ function read_cell(fname)
     return Cell(lattice, species, posmat)
 end
 
+"""
+    write_cell(fname, cell::Cell)
+"""
+function write_cell(fname, cell::Cell)
+    CellIO.write_cell(fname, cellmat(cell), positions(cell), species(cell))
+end
