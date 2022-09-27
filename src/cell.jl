@@ -1,6 +1,7 @@
 using Printf
 using PeriodicTable
 using LinearAlgebra
+import Base
 
 export Cell, nions, positions, species, atomic_numbers, lattice, volume, get_cellmat, cellmat, cellvecs, wrap!, cellpar, natoms, sposarray
 export set_scaled_positions!, get_scaled_positions, set_cellmat!, set_positions!, get_positions, get_lattice, get_cellmat
@@ -82,6 +83,7 @@ function clip(s::Cell, mask::AbstractVector)
     Cell(lattice(s), new_symbols, new_pos, new_array, s.metadata)
 end
 
+Base.getindex(cell::Cell, i::AbstractVector) = clip(cell, i)
 
 # Basic interface 
 """
@@ -380,6 +382,9 @@ function Base.show(io::IO, ::MIME"text/plain", s::Cell)
         println(io, @sprintf "%4s  %10.5f  %10.5f  %10.5f" symbol posmat[1, i] posmat[2, i] posmat[3, i])
     end
 end
+
+Base.length(cell::Cell) = natoms(cell)
+Base.getindex(cell::Cell, i::Int) = Site(@view(cell.positions[:, i]), i, cell.symbols[i])
 
 """
     distance_matrix(structure::Cell; mic=true)

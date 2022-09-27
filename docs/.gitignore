@@ -1,3 +1,5 @@
 build/
 site/
 docs/build
+.vscode
+*.cov

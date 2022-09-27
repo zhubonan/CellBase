@@ -34,6 +34,16 @@ import Spglib
         @test get_positions(s) !== positions(s)
         @test get_lattice(s) !== lattice(s)
     end
+
+    @testset "interface" begin
+        @test length(s) == 4
+        @test length(s[[1,2]]) == 2
+        @test isa(s[1], CellBase.Site)
+        stmp = deepcopy(s)
+        site = stmp[1]
+        site.position[1] = -10.
+        @test stmp.positions[1, 1] == -10.
+    end
 end
 
 @testset "Site" begin
@@ -47,6 +57,10 @@ end
         @test distance_squared_between(s1, s2) ≈ 3
         @test distance_between(s1, s2, [0, 0, 1]) ≈ sqrt(2)
         @test distance_squared_between(s1, s2, [0, 0, 1]) ≈ 2
+        @test s1.x == 0.
+        @test s2.y == 1.
+        @test s2.z == -1.
+        @test :x in propertynames(s1)
     end
 end
 
