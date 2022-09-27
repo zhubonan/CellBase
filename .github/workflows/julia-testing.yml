@@ -34,6 +34,6 @@ jobs:
       run: julia --project -e 'using Pkg; Pkg.test() --coverage'
     - name: Upload coverage
       env: 
-        CODECOV_TOKEN: {{ secrets.CODECOV_TOKEN }}
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: julia -e 'using Pkg;Pkg.install("Coverage")'
            julia -e 'using Coverage;Codecov.submit_local(process_folder())'
