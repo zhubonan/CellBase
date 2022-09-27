@@ -8,10 +8,18 @@ using Test
 @testset "IO" begin
     this_dir = splitpath(@__FILE__)[1:end-1]
     @testset "SHELX" begin
-        cell = CellBase.read_res(joinpath(this_dir..., "lno.res"))
+        fpath = joinpath(this_dir..., "lno.res")
+        cell = CellBase.read_res(fpath)
         @test species(cell) == [:Li, :Li, :O, :O, :O, :O, :Ni, :Ni]
         @test cellpar(cell)[1] == 2.73724
         @test cellpar(cell)[2] == 6.02753
+
+        # Read packed res
+        fpath = joinpath(this_dir..., "lno.pack.res")
+        cells = CellBase.read_res_many(fpath)
+        @test length(cells) == 2
+        @test cellpar(cells[1])[1] == 2.73724
+        @test cellpar(cells[1])[2] == 6.02753
     end
 
     @testset "CELL" begin
