@@ -3,6 +3,8 @@ Functions for reading SHELX files
 =#
 
 using Printf
+import GZip
+
 """
 Read an array containing the lines of the SHELX file
 """
@@ -89,7 +91,12 @@ end
 Read many SHELX files from a packed file.
 """
 function read_res_many(s::AbstractString)
-    open(s) do handle
+    if endswith(s, ".gz")
+        op = GZip.open
+    else
+        op = open
+    end
+    op(s) do handle
         read_res_many(handle)
     end
 end
