@@ -129,6 +129,12 @@ end
         @test list[1][1] == 3
         @test list[1][2] == 64
         @test list[1][3] ≈ sqrt(50)
+
+        list = collect(eachneighbour(nl, 1, unique=true))
+        @test list[1][1] == 3
+        @test list[1][2] == 64
+        @test list[1][3] ≈ sqrt(50)
+        length(list) == 3
 end
 
 @testset "Spglib" begin

@@ -303,9 +303,10 @@ num_neighbours(nl::NeighbourList, iorig) = nl.nneigh[iorig]
 abstract type AbstractNLIterator end
 
 "Iterator interface for going through all neighbours"
-struct NLIterator{T} <: AbstractNLIterator
+struct NLIterator{T, G} <: AbstractNLIterator
     nl::T
     iorig::Int
+    unique::G
 end
 
 "Iterator interface for going through all neighbours"
@@ -320,8 +321,26 @@ Base.length(nli::AbstractNLIterator) = num_neighbours(nli.nl, nli.iorig)
 function Base.iterate(nli::NLIterator, state=1)
     nl = nli.nl
     iorig = nli.iorig
-    if state > nl.nneigh[nli.iorig]
+    if state > nl.nneigh[iorig]
         return nothing
+    end
+    # Handle request for unique primitive cell image
+    if nli.unique
+        while true
+            if state > nl.nneigh[iorig]
+                return nothing
+            end
+            oidx = nl.orig_indices[state, iorig]
+            # For if we have seen this neighbour
+            seen = any(x -> nl.orig_indices[x, iorig] == oidx, 1:state-1)
+            if seen
+                # Search the next neghbour
+                state += 1 
+            else
+                # Unique neighbour found - stop
+                break
+            end
+        end
     end
     return (nl.orig_indices[state, iorig], nl.extended_indices[state, iorig], nl.distance[state, iorig]), state + 1
 end
@@ -339,7 +358,7 @@ end
 Iterate the neighbours of a site in the original cell.
 Returns a tuple of (original_index, extended_index, distance) for each iteration
 """
-eachneighbour(nl::NeighbourList, iorig) = NLIterator(nl, iorig)
+eachneighbour(nl::NeighbourList, iorig;unique=false) = NLIterator(nl, iorig, unique)
 
 
 """
