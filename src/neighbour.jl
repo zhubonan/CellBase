@@ -36,7 +36,10 @@ end
 """
     ExtendedPointArray(cell::Cell, rcut)
 
-Constructed an ExtendedPointArray from a given structure
+Constructed an ExtendedPointArray from a given structure.
+Implicitly, the positions are wrapped inside the unit cell, even if the actual 
+in the original Cell is outside the unit cell. This ensures the correct neighbour list
+begin constructed.
 """
 function ExtendedPointArray(cell::Cell, rcut)
     rcut = convert(Float64, rcut)
@@ -46,9 +49,10 @@ function ExtendedPointArray(cell::Cell, rcut)
     shiftidx = zeros(Int, ni * length(shifts))
     pos_extended = zeros(eltype(positions(cell)), 3, ni * length(shifts))
 
+    # Use the wrapped positions for building the point array
+    wrapped = wrapped_spos(cell)
     i = 1
-    original_positions = sposarray(cell)
-    for (idx, pos_orig) in enumerate(original_positions)   # Each original positions
+    for (idx, pos_orig) in enumerate(wrapped)   # Each original positions
         for (ishift, shiftvec) in enumerate(shifts)   # Each shift positions
             pos_extended[:, i] .= pos_orig .+ shiftvec
             indices[i] = idx
@@ -56,7 +60,7 @@ function ExtendedPointArray(cell::Cell, rcut)
             i += 1
         end
     end
-    ExtendedPointArray(indices, shiftidx, shifts, [SVector{3}(x) for x in eachcol(pos_extended)], original_positions, rcut, copy(cellmat(lattice(cell))))
+    ExtendedPointArray(indices, shiftidx, shifts, [SVector{3}(x) for x in eachcol(pos_extended)], wrapped, rcut, copy(cellmat(lattice(cell))))
 end
 
 """
@@ -93,7 +97,7 @@ function _update_ea_with_lattice_change(ea, cell)
     ea.shiftvecs .= newshifts
 
     # Rebuild the extended arrays
-    ea.orig_positions .= sposarray(cell)
+    ea.orig_positions .= wrapped_spos(cell)
     nshift = length(ea.shiftvecs)
     Threads.@threads for idx in 1:length(ea.orig_positions)   # Each original positions
         pos_orig = ea.orig_positions[idx]
@@ -108,7 +112,7 @@ end
 
 "Update extended points without lattice shifts - apply displacements to all image points"
 function _update_ea_no_lattice_change(ea, cell)
-    spos = sposarray(cell)
+    spos = wrapped_spos(cell)
     ns = length(ea.shiftvecs)
     Threads.@threads for idx in 1:length(spos)
         pos = spos[idx]

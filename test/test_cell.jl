@@ -8,7 +8,7 @@ import Spglib
         0 2 0
         0 0 3
     ]
-    s = Cell(Lattice(mat), [1,1,1,1], rand(3, 4))
+    s = Cell(Lattice(mat), [1,1,1,1], rand(3, 4) .* 10 .- 5 )
     @testset "Construct" begin
         @test begin
             Cell(Lattice(mat), [1, 1, 1, 1], rand(3, 4))
@@ -33,6 +33,16 @@ import Spglib
         @test get_cellmat(s) !== cellmat(s)
         @test get_positions(s) !== positions(s)
         @test get_lattice(s) !== lattice(s)
+
+        # Test getting wrapped array
+        @test length(CellBase.sposarray(s)) == length(s)
+        @test begin
+            pos = CellBase.wrapped_spos(s)
+            all(all(x .< 3) for x in pos)
+        end
+
+        wrap!(s)
+        @test all(all(x .< 3) for x in CellBase.sposarray(s))
     end
 
     @testset "interface" begin
@@ -135,6 +145,12 @@ end
         @test list[1][2] == 64
         @test list[1][3] ≈ sqrt(50)
         length(list) == 3
+        
+        # Outside the cell
+        positions(testcell)[1] += 101
+        parray = ExtendedPointArray(testcell, 6)
+        @test parray.orig_positions[1][1] != positions(testcell)[1]
+        @test all(all(x .< 10) for x in parray.orig_positions)
 end
 
 @testset "Spglib" begin

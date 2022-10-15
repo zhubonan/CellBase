@@ -325,6 +325,24 @@ function wrap!(cell::Cell)
 end
 
 """
+    wrapped_spos(cell)
+
+Return a static array of wrapped positons.
+"""
+function wrapped_spos(cell)
+    posarray = sposarray(cell)
+    recmat = SMatrix{3, 3}(rec_cellmat(lattice(cell)))
+    cmat = SMatrix{3, 3}(cellmat(cell))
+    for i in 1:length(posarray)
+        x = recmat * posarray[i] 
+        x -= floor.(x)
+        x = cmat * x
+        posarray[i] = x
+    end
+    posarray
+end
+
+"""
     set_cellmat!(cell::Cell, mat;scale_positions=true)
 
 Update the `Lattice` with a new matrix of lattice vectors. 

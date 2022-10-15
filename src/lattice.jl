@@ -80,6 +80,7 @@ reciprocal(l::Lattice) = l.rec
 Returns the matrix of reciprocal lattice vectors (without the ``2\\pi`` factor).
 """
 rec_cellmat(l::Lattice) = reciprocal(l)
+srec_cellmat(l::Lattice) = SMatrix{3,3}(rec_cellmat(l))
 
 """
     update_rec!(l::Lattice)
@@ -94,6 +95,7 @@ update_rec!(l::Lattice) = l.rec .= inv(l.matrix)
 Return the matrix of column vectors.
 """
 cellmat(lattice::Lattice) = lattice.matrix
+scellmat(lattice::Lattice) = SMatrix{3, 3}(lattice.matrix)
 
 """
     set_cellmat!(lattice::Lattice, mat)
@@ -107,9 +109,11 @@ end
 
 """Return a copy of the cell matrix"""
 get_cellmat(lattice::Lattice) = copy(lattice.matrix)
+get_scellmat(l::Lattice) = scellmat(l)
 
 """Return a copy of the reciprocal cell matrix"""
 get_rec_cellmat(lattice::Lattice) = copy(lattice.rec)
+get_srec_cellmat(lattice::Lattice) = srec_cellmat(lattice)
 
 """Get a matrix of column vectors"""
 cellmat_row(lattice::Lattice) = copy(transpose(lattice.matrix))
