@@ -52,3 +52,81 @@ function push_xyz!(lines, structure::Cell)
     end
     return lines
 end
+
+"""
+Read XYZ file
+
+NOTE: This is a pure julia implementation which may not work with all cases.
+In the future, better to use ExtXYZ.jl interface.
+"""
+function read_xyz(io::IO; extra_col_map=nothing)
+    frames = []
+    while true
+        line = readline(io)
+        if line == ""
+            break
+        end
+        natoms = parse(Int, line)
+        attr = readline(io)
+        # Read the atoms
+        species = Symbol[:NULL for _ in 1:natoms]
+        positions = Matrix{Float64}(undef, 3, natoms)
+        extra_cols = Any[]
+        for i in 1:natoms
+            content = split(readline(io))
+            species[i] = Symbol(content[1])
+            for j in 1:3
+                positions[j, i] = parse(Float64, content[1+j])
+            end
+            if !isnothing(extra_col_map)
+                push!(extra_cols, parse.(extra_col_map, content[5:end]))
+            end
+        end
+        # Process attr
+        attrdict = _process_xyz_attr(attr)
+        lattice = parse.(Float64, split(attrdict[:Lattice]))
+        if length(lattice) == 9
+            cmat = reshape(lattice, 3, 3) |> transpose |> collect
+            cell = Cell(
+                Lattice(cmat), species, positions
+            )
+        if length(lattice) == 6
+            cell = Cell(
+                Lattice(lattice...), species, positions
+            )
+        end
+        else
+            throw(ErrorException())
+        end
+        for (a, b) in attrdict
+            cell.metadata[a] = b
+        end
+        cell.metadata[:extra_cols] = extra_cols
+        push!(frames, cell)
+    end
+    frames
+end
+
+function read_xyz(f::AbstractString;kwargs...)
+    open(f) do fh
+        read_xyz(fh;kwargs...)
+    end
+end
+
+"""
+    _process_xyz_attr(attr)
+
+Process ExtXYZ attribute string.
+"""
+function _process_xyz_attr(attr)
+    pattern = r"(\w+)=[^\"]([^ ]+)"    
+    out = Dict{Symbol, String}()
+    for m in eachmatch(pattern, attr)
+        out[Symbol(m.captures[1])] = m.captures[2] 
+    end
+    pattern = r"(\w+)=\"([^\"]+)\""    
+    for m in eachmatch(pattern, attr)
+        out[Symbol(m.captures[1])] = m.captures[2] 
+    end
+    out
+end
