@@ -95,6 +95,7 @@ function _update_ea_with_lattice_change(ea, cell)
         resize!(ea.shiftidx, ntot)
     end
     ea.shiftvecs .= newshifts
+    ea.lattice .= cellmat(lattice(cell))
 
     # Rebuild the extended arrays
     ea.orig_positions .= wrapped_spos(cell)

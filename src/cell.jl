@@ -16,7 +16,7 @@ mutable struct Cell{T}
     symbols::Vector{Symbol}
     positions::Matrix{T}
     arrays::Dict{Symbol, AbstractArray}        # Any additional arrays
-    metadata::Dict
+    metadata::Dict{Symbol, Any}
 end
 ```
 
@@ -26,7 +26,7 @@ mutable struct Cell{T}
     symbols::Vector{Symbol}
     positions::Matrix{T}
     arrays::Dict{Symbol, AbstractArray}        # Any additional arrays
-    metadata::Dict
+    metadata::Dict{Symbol, Any}
 end
 
 """
@@ -37,7 +37,7 @@ Construct a Cell type from arrays
 function Cell(l::Lattice, symbols::Vector{Symbol}, positions::Matrix)
     arrays = Dict{Symbol, AbstractArray}()
     @assert length(symbols) == size(positions, 2)
-    Cell(l, symbols, positions, arrays, Dict())
+    Cell(l, symbols, positions, arrays, Dict{Symbol, Any}())
 end
 
 """
