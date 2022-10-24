@@ -16,6 +16,7 @@ struct Composition
     end
 end
 
+
 """
     Composition(pairs::Pair{Symbol, T}...) where T
 
@@ -32,6 +33,29 @@ function Composition(pairs::Pair{Symbol, T}...) where T
     end
     Composition(x, y)
 end
+
+Base.hash(t::Composition) = Base.hash((t.species, t.counts))
+
+function formula(t::Composition)
+    args = []
+    for (s, c) in zip(t.species, t.counts)
+        push!(args, s)
+        if round(c) == c
+            push!(args, Symbol(Int(c)))
+        else
+            push!(args, Symbol(c))
+        end
+    end
+    Symbol(args...)
+end
+
+formula(t::Cell) = formula(Composition(t))
+
+function Base.show(io::IO, ::MIME"text/plain", o::Composition)
+    print(io, "Composition($(formula(o))")
+end
+
+Base.show(io::IO, o::Composition) = Base.show(io, MIME("text/plain"), o)
 
 """
     Composition(comp::Dict)
@@ -56,6 +80,16 @@ Base.pairs(t::Composition) = [a => b for (a, b) in zip(t.species, t.counts)]
 Base.iterate(t::Composition) = Base.iterate(Base.pairs(t))
 Base.iterate(t::Composition, i) = Base.iterate(Base.pairs(t), i)
 Base.length(t::Composition) = Base.length(t.species)
+function Base.:(==)(t::Composition, t2::Composition) 
+    (t.species == t2.species) && (t.counts == t2.counts)
+end
+function Base.isequal(t::Composition, t2::Composition) 
+    (t.species == t2.species) && (t.counts == t2.counts)
+end
+Base.reduce(t::Composition) = t / gcd(Int.(t.counts)...)
+
+nform(t::Composition) = gcd(Int.(t.counts))
+nform(t::Cell) = nform(Composition(t))
 
 """
     Composition(cell::Cell)
@@ -80,6 +114,8 @@ Construct composition from a string.
 function Composition(string::AbstractString)
     Composition(parse_formula_with_bracket(string))
 end
+
+Composition(symbol::Symbol)  = Composition(string(symbol))
 
 """
     parse_formula(formula)

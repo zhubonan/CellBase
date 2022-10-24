@@ -1,5 +1,5 @@
 using Test
-using CellBase: Composition, Cell, Lattice
+using CellBase: Composition, Cell, Lattice, formula
 
 
 @testset "Composition" begin
@@ -32,4 +32,14 @@ using CellBase: Composition, Cell, Lattice
 
     c1 = Composition("C3O4") / 2
     @test c1[:C] == 1.5
+
+    c1 = Composition("C3O4")
+    @test formula(c1) == :C3O4
+    show(c1)
+    
+    # Equality test
+    @test Composition(formula(c1)) == c1
+
+    # Hash
+    @test hash(Composition(:C10O10)) == hash(Composition(:C10O10))
 end

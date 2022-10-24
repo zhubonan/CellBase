@@ -7,7 +7,7 @@ export ExtendedPointArray, NeighbourList, eachneighbour, nions_extended, nions_o
 export rebuild!, update!
 
 "Maximum number of shift vectors"
-const MAX_SHIFTS = 10000
+const MAX_SHIFTS = 100000
 
 
 """

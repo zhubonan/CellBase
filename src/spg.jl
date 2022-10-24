@@ -14,7 +14,8 @@ const SCell = Spglib.Cell
 
 Construct `Spglib.Cell` from `Cell` type.
 """
-SCell(cell::Cell) = SCell(cellmat(cell), get_scaled_positions(cell), atomic_numbers(cell))
+SCell(cell::Cell) = SCell(cellmat(cell), collect(eachcol(get_scaled_positions(cell))),
+                          atomic_numbers(cell))
 
 """
     Cell(cell::SCell)
