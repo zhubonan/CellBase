@@ -124,7 +124,7 @@ end
 
 Write out SHELX format data
 """
-function write_res(io::IO, structure::Cell)
+function write_res(io::IO, structure)
     infodict = structure.metadata
     titl = (
         label=get(infodict, :label, "CellBase-in-out"),
@@ -173,12 +173,12 @@ function write_res(io::IO, structure::Cell)
 end
 
 """
-    write_res(fname::AbstractString, structure::Cell)
+    write_res(fname::AbstractString, structure::Cell, mode="w")
 
 Write out SHELX format data to a file
 """
-function write_res(fname::AbstractString, structure::Cell)
-    open(fname, "w") do fh
+function write_res(fname::AbstractString, structure, mode="w")
+    open(fname, mode) do fh
         write_res(fh, structure)
     end
 end
