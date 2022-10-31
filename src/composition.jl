@@ -2,6 +2,7 @@
 For handling compositions
 =#
 import Base
+export Composition, formula
 
 """
 Type representing a composition
@@ -52,7 +53,7 @@ end
 formula(t::Cell) = formula(Composition(t))
 
 function Base.show(io::IO, ::MIME"text/plain", o::Composition)
-    print(io, "Composition($(formula(o))")
+    print(io, "Composition(:$(formula(o)))")
 end
 
 Base.show(io::IO, o::Composition) = Base.show(io, MIME("text/plain"), o)
