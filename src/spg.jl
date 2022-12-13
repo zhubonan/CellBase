@@ -101,8 +101,8 @@ end
 @extend_scell_roundtrip standardize_cell
 @extend_scell_roundtrip find_primitive
 @extend_scell_roundtrip refine_cell
-#@extend_scell_roundtrip niggli_reduce
-#@extend_scell_roundtrip delaunay_reduce
+@extend_scell_roundtrip niggli_reduce
+@extend_scell_roundtrip delaunay_reduce
 
 """
     niggli_reduce_cell(cell::Cell; wrap_pos=true)
