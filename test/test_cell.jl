@@ -183,6 +183,14 @@ end
         @test all(get_scaled_positions(reduced_cell) .== get_scaled_positions(reduced_cell2))
     end
 
+    @testset "niggli_reduce" begin
+        testcell = Cell(Lattice(5.,5.,5.,30.,30.,30.), [1,2,3,3,3], pos)
+        testtmp = testcell
+        reduced_cell = niggli_reduce(testcell)
+        reduced_cell2 = niggli_reduce_cell(testcell;wrap_pos=false)
+        @test all(isapprox.(get_scaled_positions(reduced_cell), get_scaled_positions(reduced_cell2), atol=1e-7))
+    end
+
     @testset "roundtrip functions" begin
         testcell = Cell(Lattice(5.,5.,5.,30.,30.,30.), [1,2,3,3,3], pos)
         @test isa(standardize_cell(testcell), Cell)

@@ -35,7 +35,7 @@ using CellBase: Composition, Cell, Lattice, formula
 
     c1 = Composition("C3O4")
     @test formula(c1) == :C3O4
-    show(c1)
+    show(devnull, c1)
     
     # Equality test
     @test Composition(formula(c1)) == c1

@@ -1,7 +1,7 @@
 import Base
 import Spglib
 import Spglib: get_symmetry, get_international, get_dataset
-import Spglib: standardize_cell, find_primitive, refine_cell, SpglibError
+import Spglib: standardize_cell, find_primitive, refine_cell, niggli_reduce, SpglibError
 
 struct SpglibConversionError <: Exception
     var::String
@@ -101,7 +101,7 @@ end
 @extend_scell_roundtrip standardize_cell
 @extend_scell_roundtrip find_primitive
 @extend_scell_roundtrip refine_cell
-@extend_scell_roundtrip niggli_reduce
+#@extend_scell_roundtrip niggli_reduce
 @extend_scell_roundtrip delaunay_reduce
 
 """
@@ -109,12 +109,22 @@ end
 
 Apply niggli reduction to the lattice using Spglib 
 """
-function niggli_reduce_cell(cell::Cell; wrap_pos=true)
-    reduced_cellmat = Spglib.niggli_reduce(cellmat(cell))
+function niggli_reduce_cell(cell::Cell, symprec=1e-5; wrap_pos=true)
+    reduced_cellmat = Spglib.niggli_reduce(cellmat(cell), symprec)
     outcell = deepcopy(cell)
     set_cellmat!(outcell, reduced_cellmat, scale_positions=false)
     wrap_pos && wrap!(outcell)
     outcell
 end
 
-export get_symmetry, get_dataset, get_international, refine_cell, standardize_cell, find_primitive, niggli_reduce_cell
+"""
+    niggli_reduce(cell::Cell, symprec=1e-5;)
+
+Apply niggli reduction to the lattice using Spglib. 
+The positions are not wrapped.
+"""
+function Spglib.niggli_reduce(cell::Cell, symprec=1e-5)
+    niggli_reduce_cell(cell, symprec;wrap_pos=false)
+end
+
+export get_symmetry, get_dataset, get_international, refine_cell, standardize_cell, find_primitive, niggli_reduce_cell, niggli_reduce
