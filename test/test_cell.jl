@@ -168,5 +168,28 @@ end
     @test all(cell2.positions .== testcell.positions)
     
     @test Spglib.get_international(testcell)  == "Pm-3m"
+    Spglib.get_dataset(testcell)
+    Spglib.get_symmetry(testcell)
+
+    testcell.metadata[:test] = 1
+    std = Spglib.standardize_cell(testcell)
+    @test std.metadata == testcell.metadata
+    @testset "niggli_reduce_cell" begin
+        testcell = Cell(Lattice(5.,5.,5.,30.,30.,30.), [1,2,3,3,3], pos)
+        reduced_cell = niggli_reduce_cell(testcell;wrap_pos=false)
+        @test all(positions(testcell) .== positions(reduced_cell))
+        reduced_cell2 = niggli_reduce_cell(testcell;wrap_pos=true)
+        CellBase.wrap!(reduced_cell)
+        @test all(get_scaled_positions(reduced_cell) .== get_scaled_positions(reduced_cell2))
+    end
+
+    @testset "roundtrip functions" begin
+        testcell = Cell(Lattice(5.,5.,5.,30.,30.,30.), [1,2,3,3,3], pos)
+        @test isa(standardize_cell(testcell), Cell)
+        @test isa(find_primitive(testcell), Cell)
+        @test isa(refine_cell(testcell), Cell)
+
+    end
+
 end
 
