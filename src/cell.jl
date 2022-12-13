@@ -404,8 +404,39 @@ end
 Base.length(cell::Cell) = natoms(cell)
 Base.getindex(cell::Cell, i::Int) = Site(@view(cell.positions[:, i]), i, cell.symbols[i])
 
+
+function distance_matrix(cell::Cell;mic=true)
+    if mic == true
+        _distance_matrix_mic(cell)
+    else
+        _distance_matrix_no_mic(cell)
+    end
+end
+
+
 """
-    distance_matrix(structure::Cell; mic=true)
+    _distance_matrix_no_mic(structure::Cell)
+
+Compute the distnace matrix without minimum image convention, e.g. the PBC is not respected.
+"""
+function _distance_matrix_no_mic(cell::Cell)
+    # Compute the naive pair-wise vectors
+    nn = nions(cell)
+    pos = sposarray(cell)
+    dmat = zeros(nn, nn)
+    for i in 1:nn
+        for j in i+1:nn
+            d = norm(pos[j] - pos[i])
+            dmat[i, j] = d
+            dmat[j, i] = d
+        end
+    end
+    dmat
+end
+
+
+"""
+    _distance_matrix_mic(cell::Cell)
 
 Compute the distance matrix for the given structure, using the minimum image convention (or not).
 
@@ -413,12 +444,12 @@ Note the returned matrix does not expand the cell. The distance matrix cannot be
 For example, a structure with a single atom would be a distance matrix containing only zero.
 
 """
-function distance_matrix(structure::Cell)
+function _distance_matrix_mic(cell::Cell)
 
     # Compute the naive pair-wise vectors
-    nn = nions(structure)
+    nn = nions(cell)
     vecs = zeros(3, nn*nn)
-    pos = sposarray(structure)
+    pos = sposarray(cell)
     dmat = zeros(nn, nn)
     ivec = 0
     for i in 1:nn
@@ -428,7 +459,7 @@ function distance_matrix(structure::Cell)
         end
     end
     # Apply minimum image conventions
-    _, dmic = mic(lattice(structure), @view(vecs[:, 1:ivec]))
+    _, dmic = mic(lattice(cell), @view(vecs[:, 1:ivec]))
     # Unpack computed distances
     ivec = 0
     for i in 1:nn
