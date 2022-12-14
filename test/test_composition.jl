@@ -1,5 +1,6 @@
 using Test
 using CellBase: Composition, Cell, Lattice, formula
+using LaTeXStrings
 
 
 @testset "Composition" begin
@@ -36,6 +37,17 @@ using CellBase: Composition, Cell, Lattice, formula
     c1 = Composition("C3O4")
     @test formula(c1) == :C3O4
     show(devnull, c1)
+
+    c1 = Composition("C3O")
+    @test formula(c1) == :C3O
+
+    c1 = Composition("C3O4")
+    @test latex_formula(c1) == L"$\mathrm{C_{3}O_{4}}$"
+
+    c1 = Composition("C3O4")
+    @test latex_formula(c1) == L"$\mathrm{C_{3}O_{4}}$"
+    c1 = Composition("C2O")
+    @test latex_formula(c1) == L"$\mathrm{C_{2}O}$"
 
     # Equality test
     @test Composition(formula(c1)) == c1

@@ -2,7 +2,8 @@
 For handling compositions
 =#
 import Base
-export Composition, formula, atomic_weight, reduce_composition
+export Composition, formula, atomic_weight, reduce_composition, latex_formula
+using LaTeXStrings
 
 """
 Type representing a composition
@@ -50,6 +51,11 @@ end
 
 Base.hash(t::Composition) = Base.hash((t.species, t.counts))
 
+"""
+    formula(t::Composition)
+
+Return the formula as a `Symbol`.
+"""
 function formula(t::Composition)
     args = []
     for (s, c) in zip(t.species, t.counts)
@@ -63,6 +69,27 @@ function formula(t::Composition)
         end
     end
     Symbol(args...)
+end
+
+"""
+    latex_formula(t::Composition)
+
+Return the formula as a `LaTeXString`.
+"""
+function latex_formula(t::Composition)
+    args = [raw"\mathrm{"]
+    for (s, c) in zip(t.species, t.counts)
+        push!(args, string(s))
+        if round(c) == c
+            # Omitted 1, e.g. C1O2 -> CO2
+            Int(c) == 1 && continue
+            push!(args, "_{$(Int(c))}")
+        else
+            push!(args, "_{$(c)}")
+        end
+    end
+    push!(args, raw"}")
+    latexstring(args...)
 end
 
 Base.string(t::Composition) = string(formula(t))
