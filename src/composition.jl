@@ -2,7 +2,7 @@
 For handling compositions
 =#
 import Base
-export Composition, formula, atomic_weight
+export Composition, formula, atomic_weight, reduce_composition
 
 """
 Type representing a composition
@@ -120,7 +120,7 @@ end
 function Base.isequal(t::Composition, t2::Composition)
     (t.species == t2.species) && (t.counts == t2.counts)
 end
-Base.reduce(t::Composition) = t / gcd(Int.(t.counts)...)
+
 
 """
     reduced_and_factor(t::Composition)
@@ -131,6 +131,8 @@ function reduced_and_factor(t::Composition)
     n = nform(t)
     t / n, n
 end
+
+reduce_composition(t::Composition) = t / nform(t)
 
 nform(t::Composition) = gcd(Int.(t.counts))
 nform(t::Cell) = nform(Composition(t))
@@ -224,16 +226,19 @@ function Base.:+(a::Composition, b::Composition)
 end
 
 function Base.:-(a::Composition, b::Composition)
-    nums = copy(a.counts)
     out = deepcopy(a)
-    for (i, key) in enumerate(b.species)
+    for key in keys(b)
         if key in a.species
             out[key] = a[key] - b[key]
+            if out[key] < 0
+                throw(ErrorException("$(a) does not contain suffcient $(key) ($(b[key]))"))
+            end
         else
             throw(ErrorException("$(a) does not contain  $(key)"))
         end
     end
-    out
+    mask = out.counts .!= 0
+    Composition(out.species[mask], out.counts[mask])
 end
 
 Base.:*(a::Composition, b::Real) = Composition(a.species, a.counts .* b)
