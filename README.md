@@ -13,3 +13,7 @@ Hopefully useful for more complex projects with specific applications.
 2. High performance - *when it is needed*.
 3. Extensibility and flexibility.
 
+
+## Acknowledgement
+
+Elemental datasets are taken from the [SMACT](https://github.com/WMD-group/SMACT/tree/master/smact/data) package.

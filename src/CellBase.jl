@@ -2,6 +2,7 @@ module CellBase
 
 greet() = print("Hello World!")
 
+include("elemental_data.jl")
 include("mathutils.jl")
 include("minkowski.jl")
 include("site.jl")

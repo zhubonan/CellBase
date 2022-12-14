@@ -1,5 +1,5 @@
 using Test
-using CellBase: Composition, Cell, Lattice, formula
+using CellBase: Composition, Cell, Lattice, formula, smact_data
 using LaTeXStrings
 
 
@@ -68,4 +68,12 @@ using LaTeXStrings
 
     # Obtain atomic weight
     CellBase.atomic_weight(c1)
+end
+
+@testset "Elemental data" begin
+    @test smact_data[:C].Z == 6    
+    @test smact_data["Carbon"].Z == 6    
+    @test smact_data[6].Z == 6    
+    @test smact_data[25].Z == 25    
+    @test smact_data[6].el_neg == 2.55    
 end
