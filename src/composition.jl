@@ -51,15 +51,46 @@ end
 
 Base.hash(t::Composition) = Base.hash((t.species, t.counts))
 
+function _hill_species_order(species)
+    # Hill order
+    new_keys = [x for x in species if x != :C && x !== :H]
+    if :H in species
+        pushfirst!(new_keys, :H)
+    end
+    if :C in species
+        pushfirst!(new_keys, :C)
+    end
+    new_keys
+end
+
+function _species_order(t::Composition, format)
+    known_formats = ["hill", "el_neg"]
+    if format == "hill"
+        new_keys = _hill_species_order(keys(t))
+    elseif format == "el_neg"
+        new_keys = _e_neg_species_order(keys(t))
+    else
+        throw(ErrorException("Unknown format: \"$format\", choose from: $known_formats"))
+    end
+    new_keys
+end
+
+
+function _e_neg_species_order(species)
+    neg = [smact_data[x].el_neg for x in species]
+    species[sortperm(neg)]
+end
 """
     formula(t::Composition)
 
 Return the formula as a `Symbol`.
 """
-function formula(t::Composition)
-    args = []
-    for (s, c) in zip(t.species, t.counts)
-        push!(args, s)
+function formula(t::Composition;format="hill")
+    args = Symbol[]
+    new_keys = _species_order(t, format)
+    for key in new_keys
+        push!(args, key)
+        c = t[key]
         if round(c) == c
             # Omitted 1, e.g. C1O2 -> CO2
             Int(c) == 1 && continue
@@ -76,10 +107,12 @@ end
 
 Return the formula as a `LaTeXString`.
 """
-function latex_formula(t::Composition)
+function latex_formula(t::Composition;format="hill")
     args = [raw"\mathrm{"]
-    for (s, c) in zip(t.species, t.counts)
-        push!(args, string(s))
+    new_keys = _species_order(t, format)
+    for key in new_keys 
+        push!(args, string(key))
+        c = t[key]
         if round(c) == c
             # Omitted 1, e.g. C1O2 -> CO2
             Int(c) == 1 && continue
