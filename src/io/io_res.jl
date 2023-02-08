@@ -13,9 +13,28 @@ function read_res(lines::Vector{String})
     title_items = Dict{Symbol,Any}()
     line_no = 1
 
-    species = fill(:na, length(lines))
-    scaled_pos = zeros(3, length(lines))
-    spins = zeros(3, length(lines))
+    # Find the number of atoms in the structure
+    counter = -1
+    nat = -1
+    for line in lines
+        if contains(line, "SFAC")
+            counter = 0
+            continue
+        end
+        if contains(line, "END")
+            nat = counter
+            break
+        end
+        if counter >= 0
+            counter += 1
+        end
+    end
+
+    # Storage space for per-atom properties
+    species = fill(:na, nat)
+    scaled_pos = zeros(3, nat)
+    spins = zeros(3, nat)
+
     iatom = 1
     while line_no < length(lines)
         line = lines[line_no]
@@ -23,7 +42,9 @@ function read_res(lines::Vector{String})
         if tokens[1] == "TITL"
             title_items = parse_titl(line)
         elseif (tokens[1] == "CELL") & (length(tokens) == 8)
-            cellpar[:] = map(x -> parse(Float64, x), tokens[3:8])
+            for i in 3:8
+                cellpar[i-2] = parse(Float64, tokens[i])
+            end
         elseif tokens[1] == "SFAC"
             for atom_line in @view lines[line_no+1:end]
                 if strip(atom_line) == "END"
@@ -31,7 +52,9 @@ function read_res(lines::Vector{String})
                 end
                 atokens = split(strip(atom_line))
                 species[iatom] = Symbol(atokens[1])
-                scaled_pos[:, iatom] = parse.(Float64, atokens[3:5])
+                for i in 3:5
+                    scaled_pos[i-2, iatom] = parse(Float64, atokens[i])
+                end
                 if length(atokens) == 7
                     spins[iatom] = parse(Float64, atokens[7])
                 else
@@ -42,10 +65,6 @@ function read_res(lines::Vector{String})
         end
         line_no += 1
     end
-    # Adjust the sizes
-    spins = spins[1:iatom-1]
-    scaled_pos = @view scaled_pos[:, 1:iatom-1]
-    species = species[1:iatom-1]
 
     lattice = Lattice(cellpar)
     cell = Cell(lattice, species, cellmat(lattice) * scaled_pos)
@@ -58,6 +77,7 @@ function read_res(lines::Vector{String})
     CellBase.attachmetadata!(cell, title_items)
     cell
 end
+
 
 function read_res(s::AbstractString)
     open(s) do handle
@@ -124,7 +144,7 @@ end
 
 Write out SHELX format data
 """
-function write_res(io::IO, structure)
+function write_res(io::IO, structure::Cell)
     infodict = structure.metadata
     titl = (
         label=get(infodict, :label, "CellBase-in-out"),
@@ -177,7 +197,7 @@ end
 
 Write out SHELX format data to a file
 """
-function write_res(fname::AbstractString, structure, mode="w")
+function write_res(fname::AbstractString, structure::Cell, mode="w")
     open(fname, mode) do fh
         write_res(fh, structure)
     end

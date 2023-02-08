@@ -1,0 +1,2 @@
+ignore = ["scripts"]
+whitespace_in_kwargs = false

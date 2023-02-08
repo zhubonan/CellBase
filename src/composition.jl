@@ -318,3 +318,6 @@ function Base.contains(a::Composition, b::Composition)
     end
     return true
 end
+
+# Treat composition as scalar when broadcasting
+Base.Broadcast.broadcastable(q::Composition) = Ref(q) 
