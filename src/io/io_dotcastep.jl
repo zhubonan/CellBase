@@ -104,7 +104,7 @@ function _read_snapshot(lines::Vector{String}, nions::Int, offset::Int=0)
     positions = Array{NUM_TYPE}(undef, 3, nions)
     stress = Array{NUM_TYPE}(undef, 3, 3)
     lattice = Array{NUM_TYPE}(undef, 3, 3)
-    species = [:H for i in 1:nions]
+    species = [:H for i = 1:nions]
     total_spin = 0.0
 
     coord_read = false
@@ -133,7 +133,7 @@ function _read_snapshot(lines::Vector{String}, nions::Int, offset::Int=0)
             force_read = true
             count += nions + 5
             # Check if there are stress following the force to be read
-            for subcount in count:(count+10)
+            for subcount = count:(count+10)
                 subline = lines[subcount]
                 if occursin("Stress Tensor ********", subline)
                     read_coord_table!(stress, @view(lines[subcount+6:subcount+8]), 2, 1)
@@ -154,11 +154,12 @@ function _read_snapshot(lines::Vector{String}, nions::Int, offset::Int=0)
     end
 
     abs_positions = lattice * positions
-    extras = Dict{Symbol,Any}(:total_spin => total_spin,)
+    extras = Dict{Symbol,Any}(:total_spin => total_spin)
     if stress_read
         extras[:stress] = stress
     end
-    snapshot = SnapShot(lattice, species, abs_positions, false, forces, free_energy, [""], extras)
+    snapshot =
+        SnapShot(lattice, species, abs_positions, false, forces, free_energy, [""], extras)
     return snapshot, count, eng_read & force_read & coord_read, eof
 end
 
@@ -186,7 +187,7 @@ Read lattice vectors from the lines (column vectors)
 """
 function read_lattice(lines)
     lattice = zeros(Float64, 3, 3)
-    for i in 1:3
+    for i = 1:3
         tokens = split(lines[i])
         lattice[:, i] = map(x -> parse(NUM_TYPE, x), tokens[1:3])
     end
@@ -196,4 +197,3 @@ end
 end # Module
 
 using .DotCastep: read_castep
-

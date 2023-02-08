@@ -64,13 +64,19 @@ function Site(pos, symbol)
     Site(pos, 0, symbol)
 end
 
-function Base.show(io::IO, s::Site{T}) where T
-    print(io, @sprintf "Site{%s}: %5s %4d at %10.5f %10.5f %10.5f" T s.symbol s.index s.position[1] s.position[2] s.position[3])
+function Base.show(io::IO, s::Site{T}) where {T}
+    print(
+        io,
+        @sprintf "Site{%s}: %5s %4d at %10.5f %10.5f %10.5f" T s.symbol s.index s.position[1] s.position[2] s.position[3]
+    )
 end
 
-function Base.show(io::IO, ::MIME"text/plain", s::Site{T}) where T
+function Base.show(io::IO, ::MIME"text/plain", s::Site{T}) where {T}
     print(io, @sprintf "Site{%s}:\n" T)
-    print(io, @sprintf "%5s %4d %10.5f %10.5f %10.5f" s.symbol s.index s.position[1] s.position[2] s.position[3])
+    print(
+        io,
+        @sprintf "%5s %4d %10.5f %10.5f %10.5f" s.symbol s.index s.position[1] s.position[2] s.position[3]
+    )
 end
 
 position(s::Site) = s.position
@@ -79,21 +85,23 @@ symbol(s::Site) = s.symbol
 function Base.getproperty(s::Site, sym::Symbol)
     if sym == :x
         return s.position[1]
-    elseif  sym == :y
+    elseif sym == :y
         return s.position[2]
-    elseif  sym == :z
+    elseif sym == :z
         return s.position[3]
     else
         return getfield(s, sym)
     end
 end
 
-Base.propertynames(s::Site) = (Base.fieldnames(Site)... , :x, :y, :z)
+Base.propertynames(s::Site) = (Base.fieldnames(Site)..., :x, :y, :z)
 
 distance_squared_between(s1::Site, s2::Site) = sum((s1.position .- s2.position) .^ 2)
-distance_squared_between(s1::AbstractVector, s2::AbstractVector) = sum((s1 - s2) .^ 2) 
-distance_squared_between(s1::AbstractVector, s2::AbstractVector, shift) = sum((s1 - s2 .- shift) .^ 2) 
-distance_squared_between(s1::Site, s2::Site, shift) = sum((s1.position .- s2.position .- shift) .^ 2)
+distance_squared_between(s1::AbstractVector, s2::AbstractVector) = sum((s1 - s2) .^ 2)
+distance_squared_between(s1::AbstractVector, s2::AbstractVector, shift) =
+    sum((s1 - s2 .- shift) .^ 2)
+distance_squared_between(s1::Site, s2::Site, shift) =
+    sum((s1.position .- s2.position .- shift) .^ 2)
 
 distance_between(s1, s2, shift) = sqrt(distance_squared_between(s1, s2, shift))
 distance_between(s1, s2) = sqrt(distance_squared_between(s1, s2))

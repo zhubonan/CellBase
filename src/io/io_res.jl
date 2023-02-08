@@ -42,7 +42,7 @@ function read_res(lines::Vector{String})
         if tokens[1] == "TITL"
             title_items = parse_titl(line)
         elseif (tokens[1] == "CELL") & (length(tokens) == 8)
-            for i in 3:8
+            for i = 3:8
                 cellpar[i-2] = parse(Float64, tokens[i])
             end
         elseif tokens[1] == "SFAC"
@@ -52,7 +52,7 @@ function read_res(lines::Vector{String})
                 end
                 atokens = split(strip(atom_line))
                 species[iatom] = Symbol(atokens[1])
-                for i in 3:5
+                for i = 3:5
                     scaled_pos[i-2, iatom] = parse(Float64, atokens[i])
                 end
                 if length(atokens) == 7
@@ -157,11 +157,14 @@ function write_res(io::IO, structure::Cell)
         symm=get(infodict, :symm, "(n/a)"),
         flag1=get(infodict, :flag1, "n"),
         flag2=get(infodict, :flag2, "-"),
-        flag3=get(infodict, :flag3, "1")
+        flag3=get(infodict, :flag3, "1"),
     )
     titl_line = @sprintf("TITL %s %.10f %.10f %.10f %.3f %.3f %d %s %s %s %s\n", titl...)
     write(io, titl_line)
-    cell_line = @sprintf("CELL 1.54180 %.6f %.6f %.6f %.6f %.6f %.6f\n", cellpar(lattice(structure))...)
+    cell_line = @sprintf(
+        "CELL 1.54180 %.6f %.6f %.6f %.6f %.6f %.6f\n",
+        cellpar(lattice(structure))...
+    )
     write(io, cell_line)
     write(io, "LATT -1\n")
     write(io, "SFAC ", join(map(string, unique(species(structure))), " "), "\n")
@@ -177,7 +180,18 @@ function write_res(io::IO, structure::Cell)
             if symbol != last_symbol
                 count += 1
             end
-            write(io, @sprintf("%-7s %2s %15.12f %15.12f %15.12f 1.0 %.3f\n", symbol, count, fposmat[1, i], fposmat[2, i], fposmat[3, i], spin_array[i]))
+            write(
+                io,
+                @sprintf(
+                    "%-7s %2s %15.12f %15.12f %15.12f 1.0 %.3f\n",
+                    symbol,
+                    count,
+                    fposmat[1, i],
+                    fposmat[2, i],
+                    fposmat[3, i],
+                    spin_array[i]
+                )
+            )
             last_symbol = symbol
         end
     else
@@ -185,7 +199,17 @@ function write_res(io::IO, structure::Cell)
             if symbol != last_symbol
                 count += 1
             end
-            write(io, @sprintf("%-7s %2s %15.12f %15.12f %15.12f 1.0\n", symbol, count, fposmat[1, i], fposmat[2, i], fposmat[3, i]))
+            write(
+                io,
+                @sprintf(
+                    "%-7s %2s %15.12f %15.12f %15.12f 1.0\n",
+                    symbol,
+                    count,
+                    fposmat[1, i],
+                    fposmat[2, i],
+                    fposmat[3, i]
+                )
+            )
             last_symbol = symbol
         end
     end

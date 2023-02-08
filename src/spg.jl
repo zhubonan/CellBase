@@ -6,7 +6,8 @@ import Spglib: standardize_cell, find_primitive, refine_cell, niggli_reduce, Spg
 struct SpglibConversionError <: Exception
     var::String
 end
-Base.showerror(io::IO, e::SpglibConversionError) = print(io, "Cannot convert to/from with Spglib.jl types consistently:", e.var, "!")
+Base.showerror(io::IO, e::SpglibConversionError) =
+    print(io, "Cannot convert to/from with Spglib.jl types consistently:", e.var, "!")
 
 "Alias for `Spglib.Cell`"
 const SCell = Spglib.Cell
@@ -16,8 +17,8 @@ const SCell = Spglib.Cell
 
 Construct `Spglib.Cell` from `Cell` type.
 """
-SCell(cell::Cell) = SCell(cellmat(cell), collect(eachcol(get_scaled_positions(cell))),
-                          atomic_numbers(cell))
+SCell(cell::Cell) =
+    SCell(cellmat(cell), collect(eachcol(get_scaled_positions(cell))), atomic_numbers(cell))
 
 """
     Cell(cell::SCell)
@@ -27,14 +28,10 @@ Return a `Cell` object from `Spglib.Cell`.
 function Cell(cell::SCell)
     # Collect positions
     pos = zeros(Float64, 3, length(cell.positions))
-    for i in 1:length(cell.positions)
+    for i = 1:length(cell.positions)
         pos[:, i] .= cell.lattice * cell.positions[i]
     end
-    Cell(
-        Lattice(collect(cell.lattice)),
-        collect(cell.types),
-        pos
-    )
+    Cell(Lattice(collect(cell.lattice)), collect(cell.types), pos)
 end
 
 """
@@ -50,7 +47,8 @@ will allow the `get_dataset` method of Spglib to be used for `Cell` type.
 """
 macro extend_scell(func)
     quote
-        Spglib.$(func)(cell::Cell, args...;kwargs...) = Spglib.$(func)(SCell(cell), args...;kwargs...)
+        Spglib.$(func)(cell::Cell, args...; kwargs...) =
+            Spglib.$(func)(SCell(cell), args...; kwargs...)
     end
 end
 
@@ -67,8 +65,8 @@ will allow the `standardize_cell` method to be used and the returned `Spglib.Cel
 """
 macro extend_scell_roundtrip(func)
     quote
-        function Spglib.$(func)(cell::Cell, args...;kwargs...)
-            new_cell = Cell(Spglib.$(func)(SCell(cell), args...;kwargs...))
+        function Spglib.$(func)(cell::Cell, args...; kwargs...)
+            new_cell = Cell(Spglib.$(func)(SCell(cell), args...; kwargs...))
 
             # Create a copy of the original cell and set positons and cell
             out_cell = deepcopy(cell)
@@ -124,7 +122,14 @@ Apply niggli reduction to the lattice using Spglib.
 The positions are not wrapped.
 """
 function Spglib.niggli_reduce(cell::Cell, symprec=1e-5)
-    niggli_reduce_cell(cell, symprec;wrap_pos=false)
+    niggli_reduce_cell(cell, symprec; wrap_pos=false)
 end
 
-export get_symmetry, get_dataset, get_international, refine_cell, standardize_cell, find_primitive, niggli_reduce_cell, niggli_reduce
+export get_symmetry,
+    get_dataset,
+    get_international,
+    refine_cell,
+    standardize_cell,
+    find_primitive,
+    niggli_reduce_cell,
+    niggli_reduce

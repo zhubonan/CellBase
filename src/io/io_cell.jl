@@ -1,7 +1,7 @@
 
 module CellIO
 
-using CellBase:cellpar2mat
+using CellBase: cellpar2mat
 
 """
 Read a cell file
@@ -12,7 +12,7 @@ function read_cell(fname::AbstractString)
 end
 
 "Clean lines by removing new line symbols and comments"
-function clean_lines(lines_in) 
+function clean_lines(lines_in)
     lines_out = String[]
     for line in lines_in
         tmp = strip(line)
@@ -33,7 +33,7 @@ end
 
 "Read cell related sections"
 function read_cellmat(lines)
-   block = find_block(lines, "LATTICE_CART")
+    block = find_block(lines, "LATTICE_CART")
     if length(block) > 0
         cellmat = copy(read_num_block(block, 3, column_major=true))
     else
@@ -80,12 +80,12 @@ end
 """
 Read content of a cell file
 """
-function read_cell(lines_in::Vector{T}) where T<:AbstractString
+function read_cell(lines_in::Vector{T}) where {T<:AbstractString}
 
     lines = clean_lines(lines_in)
     cellmat = read_cellmat(lines)
     posmat, ion_names = read_positions(lines, cellmat)
-       
+
     return cellmat, posmat, ion_names
 end
 
@@ -102,7 +102,7 @@ end
 """
 Read seed with the label parsed. At this stage no explansions are done
 """
-function read_seed(lines_in::Vector{T}) where T<:AbstractString
+function read_seed(lines_in::Vector{T}) where {T<:AbstractString}
 
     cell_structure = read_cell(lines_in)
     # read positions
@@ -117,7 +117,7 @@ function read_seed(lines_in::Vector{T}) where T<:AbstractString
     ion_tags = parse_taglines(block)
 
     # Read global tags in the format #KEY=<SOMETHING>
-    global_tags = Dict{Symbol, Any}()
+    global_tags = Dict{Symbol,Any}()
     for line in lines_in
         m = match(r"^#(\w+)=(.*)$", line)
         if !isnothing(m)
@@ -151,7 +151,7 @@ function _parse_tagline(i, line)
         end
     end
 
-    out_dict = Dict{Symbol, Any}(:ion_set_name => ion_set_name)
+    out_dict = Dict{Symbol,Any}(:ion_set_name => ion_set_name)
 
     # Read the tokens
     if has_settings
@@ -174,12 +174,14 @@ end
 """
 Parse tag lines, return a vector of dictionary containing parsed tags 
 """
-function parse_taglines(lines::Vector{T}) where T<:AbstractString
+function parse_taglines(lines::Vector{T}) where {T<:AbstractString}
     tags = []
     i = 0
     for line in lines
         line = strip(line)
-        if startswith(line, "#"); continue; end
+        if startswith(line, "#")
+            continue
+        end
         tokens = split(line, "#")
         if length(tokens) <= 1
             continue
@@ -195,7 +197,12 @@ end
 """
 Read a numerical block in the form of a vector of String
 """
-function read_num_block(lines::Vector{T}, span::Int; ntype::Type=Float64, column_major=false) where T<:AbstractString
+function read_num_block(
+    lines::Vector{T},
+    span::Int;
+    ntype::Type=Float64,
+    column_major=false,
+) where {T<:AbstractString}
     if column_major
         block = Array{ntype}(undef, (span, length(lines)))
         for (n, line) in enumerate(lines)
@@ -260,7 +267,7 @@ end
 """
 Filter away block names contained in only
 """
-function filter_block(lines, only::Vector{T}) where T<:AbstractString
+function filter_block(lines, only::Vector{T}) where {T<:AbstractString}
     out_lines = String[]
     in_block = false
     bname = ""

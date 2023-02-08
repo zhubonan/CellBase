@@ -18,7 +18,7 @@ struct SMACTDataEntry
     dipol::Float64
 end
 
-function _parse_non_as_nan(x) 
+function _parse_non_as_nan(x)
     if x == "None"
         return NaN
     else
@@ -27,28 +27,17 @@ function _parse_non_as_nan(x)
 end
 struct SMACTData
     entries::Vector{SMACTDataEntry}
-    by_symbol::Dict{Symbol, SMACTDataEntry}
-    by_Z::Dict{Int, SMACTDataEntry}
-    by_name::Dict{String, SMACTDataEntry}
+    by_symbol::Dict{Symbol,SMACTDataEntry}
+    by_Z::Dict{Int,SMACTDataEntry}
+    by_name::Dict{String,SMACTDataEntry}
 end
 
 
 function SMACTData(entries::Vector)
-    by_symbol = Dict{Symbol, SMACTDataEntry}(
-            (entry.symbol, entry) for entry in entries
-    )
-    by_Z = Dict{Int, SMACTDataEntry}(
-            (entry.Z, entry) for entry in entries
-    )
-    by_name = Dict{String, SMACTDataEntry}(
-            (entry.name, entry) for entry in entries
-    )
-    SMACTData(
-        entries,
-        by_symbol,
-        by_Z,
-        by_name
-    )
+    by_symbol = Dict{Symbol,SMACTDataEntry}((entry.symbol, entry) for entry in entries)
+    by_Z = Dict{Int,SMACTDataEntry}((entry.Z, entry) for entry in entries)
+    by_name = Dict{String,SMACTDataEntry}((entry.name, entry) for entry in entries)
+    SMACTData(entries, by_symbol, by_Z, by_name)
 end
 
 function _load_smact_data()

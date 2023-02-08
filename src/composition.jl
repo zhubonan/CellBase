@@ -85,7 +85,7 @@ end
 
 Return the formula as a `Symbol`.
 """
-function formula(t::Composition;format="hill")
+function formula(t::Composition; format="hill")
     args = Symbol[]
     new_keys = _species_order(t, format)
     for key in new_keys
@@ -107,10 +107,10 @@ end
 
 Return the formula as a `LaTeXString`.
 """
-function latex_formula(t::Composition;format="hill")
+function latex_formula(t::Composition; format="hill")
     args = [raw"\mathrm{"]
     new_keys = _species_order(t, format)
-    for key in new_keys 
+    for key in new_keys
         push!(args, string(key))
         c = t[key]
         if round(c) == c
@@ -206,7 +206,7 @@ function Composition(cell::Cell)
     sp_array = species(cell)
     unique_sp = sort(unique(sp_array))
     num_atoms = Array{Int}(undef, size(unique_sp))
-    for i in 1:length(unique_sp)
+    for i = 1:length(unique_sp)
         num_atoms[i] = count(x -> x == unique_sp[i], sp_array)
     end
     Composition(unique_sp, num_atoms)
@@ -304,7 +304,8 @@ end
 Base.:*(a::Composition, b::Real) = Composition(a.species, a.counts .* b)
 Base.:/(a::Composition, b::Real) = Composition(a.species, a.counts ./ b)
 
-atomic_weight(comp::Composition) = sum(elements[key].atomic_mass * value for (key, value) in pairs(comp))
+atomic_weight(comp::Composition) =
+    sum(elements[key].atomic_mass * value for (key, value) in pairs(comp))
 
 function Base.contains(a::Composition, b::Composition)
     akeys = keys(a)
@@ -320,4 +321,4 @@ function Base.contains(a::Composition, b::Composition)
 end
 
 # Treat composition as scalar when broadcasting
-Base.Broadcast.broadcastable(q::Composition) = Ref(q) 
+Base.Broadcast.broadcastable(q::Composition) = Ref(q)

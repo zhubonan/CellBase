@@ -16,7 +16,7 @@ end
 
 Construct a `Lattice` from a matrix of column vectors.
 """
-function Lattice(matrix::Matrix{T}) where T
+function Lattice(matrix::Matrix{T}) where {T}
     Lattice(matrix, inv(matrix))
 end
 
@@ -29,7 +29,7 @@ end
 
 Construct a `Lattice` from three lattice vectors.
 """
-function Lattice(va::Vector{T}, vb::Vector{T}, vc::Vector{T}) where T
+function Lattice(va::Vector{T}, vb::Vector{T}, vc::Vector{T}) where {T}
     cellmat = hcat(va, vb, vc)
     Lattice(cellmat)
 end
@@ -39,7 +39,7 @@ end
 
 Construct a `Lattice` from a six-vector of lattice parameters.
 """
-function Lattice(cellpar::Vector{T}) where T
+function Lattice(cellpar::Vector{T}) where {T}
     cellmat = cellpar2mat(cellpar...)
     Lattice(cellmat)
 end
@@ -49,7 +49,7 @@ end
 
 Construct a `Lattice` from lattice parameters.
 """
-function Lattice(a::T, b::T, c::T, α::T, β::T, γ::T) where T
+function Lattice(a::T, b::T, c::T, α::T, β::T, γ::T) where {T}
     cellmat = cellpar2mat(a, b, c, α, β, γ)
     Lattice(cellmat)
 end
@@ -59,7 +59,7 @@ end
 
 Construct a `Lattice` with orthogonal lattice vectors.
 """
-function Lattice(a::T, b::T, c::T) where T <: Real
+function Lattice(a::T, b::T, c::T) where {T<:Real}
     cellmat = zeros(T, 3, 3)
     cellmat[1, 1] = a
     cellmat[2, 2] = b
@@ -95,7 +95,7 @@ update_rec!(l::Lattice) = l.rec .= inv(l.matrix)
 Return the matrix of column vectors.
 """
 cellmat(lattice::Lattice) = lattice.matrix
-scellmat(lattice::Lattice) = SMatrix{3, 3}(lattice.matrix)
+scellmat(lattice::Lattice) = SMatrix{3,3}(lattice.matrix)
 
 """
     set_cellmat!(lattice::Lattice, mat)
@@ -119,7 +119,8 @@ get_srec_cellmat(lattice::Lattice) = srec_cellmat(lattice)
 cellmat_row(lattice::Lattice) = copy(transpose(lattice.matrix))
 
 """Lattice vectors"""
-cellvecs(lattice::Lattice) = lattice.matrix[:, 1], lattice.matrix[:, 2], lattice.matrix[:, 3]
+cellvecs(lattice::Lattice) =
+    lattice.matrix[:, 1], lattice.matrix[:, 2], lattice.matrix[:, 3]
 
 "Return the volume of the cell"
 function volume(lattice::Lattice)
@@ -135,16 +136,16 @@ Return the lattice parameters as a six-vector.
 cellpar(lattice::Lattice) = vec2cellpar(cellvecs(lattice)...)
 
 "Fraction positions of a site"
-frac_pos(s::Site, l::Lattice) = l.rec * s.position 
+frac_pos(s::Site, l::Lattice) = l.rec * s.position
 
 "Wrap a site back into the box"
 function wrap!(s::Site, l::Lattice)
     frac = frac_pos(s, l)
-    for i in 1:3
+    for i = 1:3
         v = frac[i] % 1
         v < 0 && (v += 1)
         frac[i] = v
-    end 
+    end
     s.position[:] = l.matrix * frac
 end
 
@@ -152,7 +153,7 @@ function Base.show(io::IO, l::Lattice)
     println("Lattice: ")
     cellmat = l.matrix
     for (i, s) in zip(1:3, ['a', 'b', 'c'])
-        @printf "%s %5.3f   %5.3f   %5.3f\n" s  cellmat[1, i] cellmat[2, i] cellmat[3, i]
+        @printf "%s %5.3f   %5.3f   %5.3f\n" s cellmat[1, i] cellmat[2, i] cellmat[3, i]
     end
 end
 
@@ -162,8 +163,8 @@ end
 
 Get an random vector within a unit cell. The cell is a matrix made of column vectors.
 """
-function random_vec_in_cell(cell::Matrix{T}; scales::Vector=ones(size(cell)[1])) where T
-    out = zeros(T,  size(cell)[2])
+function random_vec_in_cell(cell::Matrix{T}; scales::Vector=ones(size(cell)[1])) where {T}
+    out = zeros(T, size(cell)[2])
     for (i, scale) in enumerate(scales)
         out[:] += cell[:, i] * (scale * randf())
     end
@@ -249,16 +250,16 @@ function mic_safe(l::Lattice, v::AbstractMatrix)
         minshift = 1  # Default to one as we know the first shift is 0, 0, 0
         # Find the shorts vector
         for (ishift, svec) in enumerate(eachcol(shiftvec))
-            d2 = 0.
+            d2 = 0.0
             # dot(svec .+ vec, svec .+ vec)
             for ii = 1:3
                 @inbounds tmp = svec[ii] + vec[ii]
                 d2 += tmp * tmp
             end
             # Shorter equivalent vector detected - store the length and indices
-            if  d2 < mind2
+            if d2 < mind2
                 # Store the shifted vecor
-                minshift = ishift 
+                minshift = ishift
                 mind2 = d2
             end
         end
@@ -282,10 +283,10 @@ function mic_shiftvecs(rcell::AbstractMatrix)
     # Assign shift vectors
     # For the reduced cell we just shift by (-1, 1) in each dimension
     shifts = zeros(Int, 3, 28)
-    i=2
+    i = 2
     for tup in Base.product([-1, 0, 1], [-1, 0, 1], [-1, 0, 1])
         shifts[:, i] .= tup
-        i +=1
+        i += 1
     end
     rcell * shifts
 end

@@ -7,12 +7,12 @@ Functions for writing XYZ files
 """
     Write snapshots to a xyz file
 """
-function write_xyz(fname, structures::Vector{Cell{T}}) where T
+function write_xyz(fname, structures::Vector{Cell{T}}) where {T}
     lines = String[]
     for structure in structures
         push_xyz!(lines, structure)
     end
-    
+
     open(fname, "w") do handle
         for line in lines
             write(handle, line)
@@ -37,14 +37,14 @@ function push_xyz!(lines, structure::Cell)
         push!(info_lines, "$(key)=\"$(value)\"")
     end
     info_string = join(info_lines, " ")
-    
+
     comment_line = "Lattice = \"$ax $ay $az $bx $by $bz $cx $cy $cz\" Properties=\"species:S:1:pos:R:3\" $(info_string)"
     push!(lines, comment_line)
-    
+
     # Write the atoms
     sp = species(structure)
     pos = positions(structure)
-    for i in 1:ns
+    for i = 1:ns
         specie = sp[i]
         x, y, z = pos[:, i]
         line = "$specie $x $y $z"
@@ -69,13 +69,13 @@ function read_xyz(io::IO; extra_col_map=nothing)
         natoms = parse(Int, line)
         attr = readline(io)
         # Read the atoms
-        species = Symbol[:NULL for _ in 1:natoms]
+        species = Symbol[:NULL for _ = 1:natoms]
         positions = Matrix{Float64}(undef, 3, natoms)
         extra_cols = Any[]
-        for i in 1:natoms
+        for i = 1:natoms
             content = split(readline(io))
             species[i] = Symbol(content[1])
-            for j in 1:3
+            for j = 1:3
                 positions[j, i] = parse(Float64, content[1+j])
             end
             if !isnothing(extra_col_map)
@@ -87,14 +87,10 @@ function read_xyz(io::IO; extra_col_map=nothing)
         lattice = parse.(Float64, split(attrdict[:Lattice]))
         if length(lattice) == 9
             cmat = reshape(lattice, 3, 3) |> transpose |> collect
-            cell = Cell(
-                Lattice(cmat), species, positions
-            )
-        if length(lattice) == 6
-            cell = Cell(
-                Lattice(lattice...), species, positions
-            )
-        end
+            cell = Cell(Lattice(cmat), species, positions)
+            if length(lattice) == 6
+                cell = Cell(Lattice(lattice...), species, positions)
+            end
         else
             throw(ErrorException())
         end
@@ -107,9 +103,9 @@ function read_xyz(io::IO; extra_col_map=nothing)
     frames
 end
 
-function read_xyz(f::AbstractString;kwargs...)
+function read_xyz(f::AbstractString; kwargs...)
     open(f) do fh
-        read_xyz(fh;kwargs...)
+        read_xyz(fh; kwargs...)
     end
 end
 
@@ -119,14 +115,14 @@ end
 Process ExtXYZ attribute string.
 """
 function _process_xyz_attr(attr)
-    pattern = r"(\w+)=[^\"]([^ ]+)"    
-    out = Dict{Symbol, String}()
+    pattern = r"(\w+)=[^\"]([^ ]+)"
+    out = Dict{Symbol,String}()
     for m in eachmatch(pattern, attr)
-        out[Symbol(m.captures[1])] = m.captures[2] 
+        out[Symbol(m.captures[1])] = m.captures[2]
     end
-    pattern = r"(\w+)=\"([^\"]+)\""    
+    pattern = r"(\w+)=\"([^\"]+)\""
     for m in eachmatch(pattern, attr)
-        out[Symbol(m.captures[1])] = m.captures[2] 
+        out[Symbol(m.captures[1])] = m.captures[2]
     end
     out
 end

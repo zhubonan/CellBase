@@ -15,4 +15,4 @@ include("io_xyz.jl")
 include("io_sheap.jl")
 include("io_dotcastep.jl")
 
-export read_res, write_res, read_cell,  write_xyz
+export read_res, write_res, read_cell, write_xyz

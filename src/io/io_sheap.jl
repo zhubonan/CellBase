@@ -141,7 +141,8 @@ function write_sheap_input!(out, vecs, metadata=repeat([SheapMetadata()], length
         write(out, join(map(string, vec), "\t"))
         write(out, "\n")
         # Write metadata
-        metaline = @sprintf "%s\t%d\t%s\t\"%s\"\t%f\t%f\t%d\n" m.label m.natoms m.form m.sym m.volume m.enthalpy m.nfound
+        metaline =
+            @sprintf "%s\t%d\t%s\t\"%s\"\t%f\t%f\t%d\n" m.label m.natoms m.form m.sym m.volume m.enthalpy m.nfound
         write(out, metaline)
     end
 end
@@ -152,7 +153,12 @@ end
 
 Run SHEAP for a iterator of vectors with the given options.
 """
-function run_sheap(vecs, opt::SheapOptions; metadata=repeat([SheapMetadata()], length(vecs)), show_stderr=false)
+function run_sheap(
+    vecs,
+    opt::SheapOptions;
+    metadata=repeat([SheapMetadata()], length(vecs)),
+    show_stderr=false,
+)
 
     # Store the output in a temporay buffer
     outbuffer = IOBuffer()

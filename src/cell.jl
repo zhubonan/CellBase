@@ -3,8 +3,27 @@ using PeriodicTable
 using LinearAlgebra
 import Base
 
-export Cell, nions, positions, species, atomic_numbers, lattice, volume, get_cellmat, cellmat, cellvecs, wrap!, cellpar, natoms, sposarray
-export set_scaled_positions!, get_scaled_positions, set_cellmat!, set_positions!, get_positions, get_lattice, get_cellmat
+export Cell,
+    nions,
+    positions,
+    species,
+    atomic_numbers,
+    lattice,
+    volume,
+    get_cellmat,
+    cellmat,
+    cellvecs,
+    wrap!,
+    cellpar,
+    natoms,
+    sposarray
+export set_scaled_positions!,
+    get_scaled_positions,
+    set_cellmat!,
+    set_positions!,
+    get_positions,
+    get_lattice,
+    get_cellmat
 
 """
 A Cell represents a periodic structure in three-dimensional space.
@@ -25,8 +44,8 @@ mutable struct Cell{T}
     lattice::Lattice{T}                 # Lattice of the structure
     symbols::Vector{Symbol}
     positions::Matrix{T}
-    arrays::Dict{Symbol, AbstractArray}        # Any additional arrays
-    metadata::Dict{Symbol, Any}
+    arrays::Dict{Symbol,AbstractArray}        # Any additional arrays
+    metadata::Dict{Symbol,Any}
 end
 
 """
@@ -35,9 +54,9 @@ end
 Construct a Cell type from arrays
 """
 function Cell(l::Lattice, symbols::Vector{Symbol}, positions::Matrix)
-    arrays = Dict{Symbol, AbstractArray}()
+    arrays = Dict{Symbol,AbstractArray}()
     @assert length(symbols) == size(positions, 2)
-    Cell(l, symbols, positions, arrays, Dict{Symbol, Any}())
+    Cell(l, symbols, positions, arrays, Dict{Symbol,Any}())
 end
 
 """
@@ -76,7 +95,7 @@ function clip(s::Cell, mask::AbstractVector)
     new_pos = positions(s)[:, mask]
     new_symbols = species(s)[mask]
     # Clip any additional arrays
-    new_array = Dict{Symbol, AbstractArray}()
+    new_array = Dict{Symbol,AbstractArray}()
     for (key, array) in pairs(s.arrays)
         new_array[key] = selectdim(array, ndims(A), mask)
     end
@@ -122,7 +141,8 @@ get_positions(cell::Cell) = copy(cell.positions)
 Return the positions as a Vector of static arrays.
 The returned array can provide improved performance for certain type of operations.
 """
-sposarray(structure::Cell{T}) where T = [SVector{3, T}(x) for x in eachcol(positions(structure))]
+sposarray(structure::Cell{T}) where {T} =
+    [SVector{3,T}(x) for x in eachcol(positions(structure))]
 
 """
     species(structure::Cell)
@@ -265,13 +285,13 @@ function formula_and_factor(structure::Cell)
     sp_array = species(structure)
     unique_sp = sorted_symbols(unique(sp_array))
     num_atoms = Array{Int}(undef, size(unique_sp))
-    for i in 1:length(unique_sp)
-       num_atoms[i] = count(x -> x == unique_sp[i], sp_array)
+    for i = 1:length(unique_sp)
+        num_atoms[i] = count(x -> x == unique_sp[i], sp_array)
     end
     num_fu = gcd(num_atoms)
     num_atoms ./= num_fu
     args = Symbol[]
-    for i in 1:length(unique_sp)
+    for i = 1:length(unique_sp)
         push!(args, unique_sp[i])
         if num_atoms[i] > 1
             push!(args, Symbol(num_atoms[i]))
@@ -291,7 +311,7 @@ Return the unique species and integer based indices for each atom.
 function specindex(structure)
     # Mapping between the speices as symbols and as intgers
     unique_spec = unique(species(structure))
-    spec_indices = [findfirst(x-> x==sym, unique_spec) for sym in species(structure)]
+    spec_indices = [findfirst(x -> x == sym, unique_spec) for sym in species(structure)]
     return unique_spec, spec_indices
 end
 
@@ -301,7 +321,7 @@ end
 Return fractional positions of the cell.
 """
 function get_scaled_positions(cell::Cell)
-    rec_cellmat(lattice(cell))  * positions(cell)
+    rec_cellmat(lattice(cell)) * positions(cell)
 end
 
 """
@@ -331,10 +351,10 @@ Return a static array of wrapped positons.
 """
 function wrapped_spos(cell)
     posarray = sposarray(cell)
-    recmat = SMatrix{3, 3}(rec_cellmat(lattice(cell)))
-    cmat = SMatrix{3, 3}(cellmat(cell))
-    for i in 1:length(posarray)
-        x = recmat * posarray[i] 
+    recmat = SMatrix{3,3}(rec_cellmat(lattice(cell)))
+    cmat = SMatrix{3,3}(cellmat(cell))
+    for i = 1:length(posarray)
+        x = recmat * posarray[i]
         x -= floor.(x)
         x = cmat * x
         posarray[i] = x
@@ -348,11 +368,11 @@ end
 Update the `Lattice` with a new matrix of lattice vectors. 
 Scale of the existing postions if needed.
 """
-function set_cellmat!(cell::Cell, mat;scale_positions=true)
+function set_cellmat!(cell::Cell, mat; scale_positions=true)
     if scale_positions
         scaled_pos = get_scaled_positions(cell)
         set_cellmat!(lattice(cell), mat)
-        set_scaled_positions!(cell, scaled_pos) 
+        set_scaled_positions!(cell, scaled_pos)
     else
         set_cellmat!(lattice(cell), mat)
     end
@@ -374,7 +394,7 @@ Rattle the positions of the cell for a given maximum amplitude (uniform distribu
 function rattle!(cell::Cell, amp)
     dev = rand(length(positions(cell)))
     for i in eachindex(cell.positions)
-        cell.positions[i] += (rand() - 0.5 ) * 2amp 
+        cell.positions[i] += (rand() - 0.5) * 2amp
     end
 end
 
@@ -389,15 +409,24 @@ function Base.show(io::IO, ::MIME"text/plain", s::Cell)
     println(io, "Lattice: ")
     cellmat = s.lattice.matrix
     posmat = positions(s)
-    for i in 1:3
-        println(io, @sprintf "%8.3f   %8.3f   %8.3f"  cellmat[1, i] cellmat[2, i] cellmat[3, i])
+    for i = 1:3
+        println(
+            io,
+            @sprintf "%8.3f   %8.3f   %8.3f" cellmat[1, i] cellmat[2, i] cellmat[3, i]
+        )
     end
 
     println(io, "Sites: ")
     sym = species(s)
-    for i in 1:nions(s)
+    for i = 1:nions(s)
         symbol = sym[i]
-        println(io, @sprintf "%4s  %10.5f  %10.5f  %10.5f" symbol posmat[1, i] posmat[2, i] posmat[3, i])
+        println(
+            io,
+            @sprintf "%4s  %10.5f  %10.5f  %10.5f" symbol posmat[1, i] posmat[2, i] posmat[
+                3,
+                i,
+            ]
+        )
     end
 end
 
@@ -405,7 +434,7 @@ Base.length(cell::Cell) = natoms(cell)
 Base.getindex(cell::Cell, i::Int) = Site(@view(cell.positions[:, i]), i, cell.symbols[i])
 
 
-function distance_matrix(cell::Cell;mic=true)
+function distance_matrix(cell::Cell; mic=true)
     if mic == true
         _distance_matrix_mic(cell)
     else
@@ -424,8 +453,8 @@ function _distance_matrix_no_mic(cell::Cell)
     nn = nions(cell)
     pos = sposarray(cell)
     dmat = zeros(nn, nn)
-    for i in 1:nn
-        for j in i+1:nn
+    for i = 1:nn
+        for j = i+1:nn
             d = norm(pos[j] - pos[i])
             dmat[i, j] = d
             dmat[j, i] = d
@@ -448,12 +477,12 @@ function _distance_matrix_mic(cell::Cell)
 
     # Compute the naive pair-wise vectors
     nn = nions(cell)
-    vecs = zeros(3, nn*nn)
+    vecs = zeros(3, nn * nn)
     pos = sposarray(cell)
     dmat = zeros(nn, nn)
     ivec = 0
-    for i in 1:nn
-        for j in i+1:nn
+    for i = 1:nn
+        for j = i+1:nn
             ivec += 1
             vecs[:, ivec] .= pos[j] .- pos[i]
         end
@@ -462,8 +491,8 @@ function _distance_matrix_mic(cell::Cell)
     _, dmic = mic(lattice(cell), @view(vecs[:, 1:ivec]))
     # Unpack computed distances
     ivec = 0
-    for i in 1:nn
-        for j in i+1:nn
+    for i = 1:nn
+        for j = i+1:nn
             ivec += 1
             dmat[i, j] = dmic[ivec]
             dmat[j, i] = dmic[ivec]
@@ -478,10 +507,10 @@ end
 Return the squared distance between two positions stored in a matrix and shift vector.
 """
 function distance_squared_between(posmat::Matrix, i, j, svec::Matrix, ishift)
-    d2 = 0.
-    for n=1:3
+    d2 = 0.0
+    for n = 1:3
         d = posmat[n, j] - posmat[n, i] + svec[n, ishift]
-        d2 += d *d
+        d2 += d * d
     end
     d2
 end
@@ -495,12 +524,12 @@ as an dictionary where the global version under the :global key. To supply the m
 between A and B, pass Dict((:A=>:B)=>1.0).
 Return true or false.
 """
-function check_minsep(structure::Cell, minsep::Dict{T, Float64}) where T
+function check_minsep(structure::Cell, minsep::Dict{T,Float64}) where {T}
     _, spec_indices, minsep_matrix = compute_minsep_mat(structure, minsep)
     dist_mat = distance_matrix(structure)
     ni = nions(structure)
-    for i in 1:ni
-        for j in i+1:ni
+    for i = 1:ni
+        for j = i+1:ni
             si = spec_indices[i]
             sj = spec_indices[j]
             if minsep_matrix[si, sj] > dist_mat[i, j]
@@ -518,18 +547,18 @@ end
 Initialise the minimum separation matrix and species mapping.
 Returns the unique species, integer indexed species and the minimum separation matrix.
 """
-function compute_minsep_mat(structure, minsep::Dict{T, Float64}) where T
+function compute_minsep_mat(structure, minsep::Dict{T,Float64}) where {T}
     unique_spec, spec_indices = specindex(structure)
     nunique = length(unique_spec)
     # Minimum separation matrix
     minsep_mat = zeros(nunique, nunique)
-    for i in 1:nunique
-        for j in i:nunique
+    for i = 1:nunique
+        for j = i:nunique
             sA = unique_spec[i]
             sB = unique_spec[j]
-            if (sA=>sB) in keys(minsep)
+            if (sA => sB) in keys(minsep)
                 value = minsep[sA=>sB]
-            elseif (sB=>sA) in keys(minsep)
+            elseif (sB => sA) in keys(minsep)
                 value = minsep[sB=>sA]
             else
                 value = get(minsep, :all, 1.0)
@@ -555,11 +584,11 @@ function make_supercell(structure::Cell, a, b, c)
         0 b 0
         0 0 c
     ]
-    old_cell = cellmat(lattice(structure)) 
+    old_cell = cellmat(lattice(structure))
     new_cell = old_cell * tmat
 
     # Compute the shift vectors
-    svec = shift_vectors(old_cell, a-1, b-1, c-1, 0, 0, 0)
+    svec = shift_vectors(old_cell, a - 1, b - 1, c - 1, 0, 0, 0)
     nshifts = length(svec)
 
     current_pos = positions(structure)
@@ -567,9 +596,9 @@ function make_supercell(structure::Cell, a, b, c)
     # New positions
     new_pos = zeros(3, nshifts * ns)
     for (i, shift) in enumerate(svec)
-        for j in 1:ns
+        for j = 1:ns
             idx = j + (i - 1) * ns  # New index
-            for n=1:3
+            for n = 1:3
                 @inbounds new_pos[n, idx] = current_pos[n, j] + shift[n]
             end
         end
@@ -587,7 +616,7 @@ NOTE: Does not work for single atom cell!!
 """
 function fingerprint(s::Cell; dmat=distance_matrix(s), weighted=true, cut_bl=3.0)
     # Cut off distance based on minimum bond length
-    cut_bl = minimum(d for d in dmat if d > 0.) * cut_bl   
+    cut_bl = minimum(d for d in dmat if d > 0.0) * cut_bl
     # Allocate workspace
     nn, _ = size(dmat)
     dist = zeros(nn * nn)
@@ -596,14 +625,14 @@ function fingerprint(s::Cell; dmat=distance_matrix(s), weighted=true, cut_bl=3.0
     num = atomic_numbers(s)
 
     c = 0
-    norm_weights = 0.
+    norm_weights = 0.0
     # Consider only the lower triangle
-    for j in 1:nn
-        for i in 1+j:nn
+    for j = 1:nn
+        for i = 1+j:nn
             d = dmat[i, j]
             d > cut_bl && continue
             c += 1
-            dist[c] = d 
+            dist[c] = d
             if weighted
                 dist[c] *= num[i] * num[j]
                 norm_weights += num[i] * num[j]
@@ -629,15 +658,15 @@ Compute the deviation between two finger print vectors
 Comparison is truncated by the size of the shortest vector of the two, or by the `lim`
 key word.
 """
-function fingerprint_distance(f1::AbstractVector, f2::AbstractVector;lim=Inf)
+function fingerprint_distance(f1::AbstractVector, f2::AbstractVector; lim=Inf)
     l1 = length(f1)
     l2 = length(f2)
     comp = min(l1, l2)
-    d = 0.
+    d = 0.0
     ncomp = 0
-    for i in 1:comp
-        f1[i] > lim && break 
-        f2[i] > lim && break 
+    for i = 1:comp
+        f1[i] > lim && break
+        f2[i] > lim && break
         d += abs(f1[i] - f2[i])
         ncomp += 1
     end

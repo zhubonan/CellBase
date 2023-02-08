@@ -6,13 +6,13 @@ using LinearAlgebra
 
 function minkowski_reduce3d(B::AbstractMatrix)
     H = Float64[
-       1 0 0
-       0 1 0
-       0 0 1
-       ] 
+        1 0 0
+        0 1 0
+        0 0 1
+    ]
     norms = map(norm, eachcol(B))
     MAX_IT = 10000
-    for it in 1:MAX_IT
+    for it = 1:MAX_IT
         # Sort vectors by norm
         H = H[:, sortperm(norms)]
 
@@ -41,7 +41,7 @@ function minkowski_reduce3d(B::AbstractMatrix)
         norms = map(norm, eachcol(R))
         if norms[3] >= norms[2]
             return R, H
-        end 
+        end
     end
     throw(ErrorException("Cannot find reduced basis after  $(MAX_IT) iterations"))
 end
@@ -56,7 +56,7 @@ function reduction_gauss(B::Matrix, hu::Vector, hv::Vector)
     u = B * hu
     v = B * hv
     MAX_IT = 10000
-    for it in 1:MAX_IT
+    for it = 1:MAX_IT
         x = Int(round(dot(u, v) / dot(u, u)))
         hu_bak = copy(hu)
         hu .= hv .- x * hu
@@ -77,7 +77,7 @@ function closest_vector(t0, u, v)
     rs, cs = relavant_vectors_2d(u, v)
     dprev = Inf
     MAX_IT = 100000
-    for it in 1:MAX_IT
+    for it = 1:MAX_IT
         ds = map(norm, eachslice(rs .+ t, dims=2))
         index = argmin(ds)
         if index == 1 || ds[index] >= dprev
@@ -86,7 +86,7 @@ function closest_vector(t0, u, v)
 
         dprev = ds[index]
         r = rs[:, index]
-        kopt = Int(round(-dot(t, r)/dot(r,r)))
+        kopt = Int(round(-dot(t, r) / dot(r, r)))
         a .+= kopt * cs[:, index]
         t .= t0 .+ a[1] .* u + a[2] .* v
     end
@@ -96,8 +96,8 @@ end
 
 function relavant_vectors_2d(u, v)
     cs = [
-        -1 -1 -1  0  0  0  1  1  1
-        -1  0  1 -1  0  1 -1  0  1
+        -1 -1 -1 0 0 0 1 1 1
+        -1 0 1 -1 0 1 -1 0 1
     ]
     vs = hcat(u, v) * cs
     indices = sortperm(map(norm, eachcol(vs)))[1:7]

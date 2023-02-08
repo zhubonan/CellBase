@@ -3,7 +3,8 @@ Code for building neighbour lists and extended point array
 =#
 import Base
 using Base.Threads
-export ExtendedPointArray, NeighbourList, eachneighbour, nions_extended, nions_orig, num_neighbours
+export ExtendedPointArray,
+    NeighbourList, eachneighbour, nions_extended, nions_orig, num_neighbours
 export rebuild!, update!
 
 "Maximum number of shift vectors"
@@ -30,7 +31,10 @@ struct ExtendedPointArray{T}
 end
 
 function Base.show(io::IO, s::ExtendedPointArray)
-    print(io, "ExtendedPointArray of $(length(s.indices)) points from $(length(s.orig_positions)) points")
+    print(
+        io,
+        "ExtendedPointArray of $(length(s.indices)) points from $(length(s.orig_positions)) points",
+    )
 end
 
 """
@@ -60,7 +64,15 @@ function ExtendedPointArray(cell::Cell, rcut)
             i += 1
         end
     end
-    ExtendedPointArray(indices, shiftidx, shifts, [SVector{3}(x) for x in eachcol(pos_extended)], wrapped, rcut, copy(cellmat(lattice(cell))))
+    ExtendedPointArray(
+        indices,
+        shiftidx,
+        shifts,
+        [SVector{3}(x) for x in eachcol(pos_extended)],
+        wrapped,
+        rcut,
+        copy(cellmat(lattice(cell))),
+    )
 end
 
 """
@@ -100,7 +112,7 @@ function _update_ea_with_lattice_change(ea, cell)
     # Rebuild the extended arrays
     ea.orig_positions .= wrapped_spos(cell)
     nshift = length(ea.shiftvecs)
-    Threads.@threads for idx in 1:length(ea.orig_positions)   # Each original positions
+    Threads.@threads for idx = 1:length(ea.orig_positions)   # Each original positions
         pos_orig = ea.orig_positions[idx]
         for (ishift, shiftvec) in enumerate(ea.shiftvecs)   # Each shift positions
             i = (idx - 1) * nshift + ishift
@@ -115,11 +127,11 @@ end
 function _update_ea_no_lattice_change(ea, cell)
     spos = wrapped_spos(cell)
     ns = length(ea.shiftvecs)
-    Threads.@threads for idx in 1:length(spos)
+    Threads.@threads for idx = 1:length(spos)
         pos = spos[idx]
         disp = pos - ea.orig_positions[idx]
         # Displace all images by this amount
-        for j in 1:length(ea.shiftvecs)
+        for j = 1:length(ea.shiftvecs)
             m = (idx - 1) * ns + j
             ea.positions[m] = ea.positions[m] + disp
         end
@@ -153,7 +165,8 @@ end
 allzeros(svec::SVector{1}) = (svec[1] == 0)
 allzeros(svec::SVector{2}) = (svec[1] == 0) && (svec[2] == 0)
 allzeros(svec::SVector{3}) = (svec[1] == 0) && (svec[2] == 0) && (svec[3] == 0)
-allzeros(svec::SVector{4}) = (svec[1] == 0) && (svec[2] == 0) && (svec[3] == 0) && (svec[4] == 0)
+allzeros(svec::SVector{4}) =
+    (svec[1] == 0) && (svec[2] == 0) && (svec[3] == 0) && (svec[4] == 0)
 
 "Number of ions in the original cell"
 nions_orig(n::ExtendedPointArray) = length(n.orig_positions)
@@ -227,7 +240,7 @@ function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
     fill!(extended_indices, 0)
     fill!(nneigh, 0)
 
-    Threads.@threads for iorig in 1:length(ea.orig_positions)
+    Threads.@threads for iorig = 1:length(ea.orig_positions)
         posi = ea.orig_positions[iorig]
         ineigh = 0
         for (j, posj) in enumerate(ea.positions)
@@ -249,7 +262,11 @@ function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
         end
         # Store the total number of neighbours for this point
         if ineigh > nmax
-            throw(ErrorException("Too many neighbours, please increase the value of nmax to at least $(ineigh)"))
+            throw(
+                ErrorException(
+                    "Too many neighbours, please increase the value of nmax to at least $(ineigh)",
+                ),
+            )
         end
         nneigh[iorig] = ineigh
     end
@@ -299,7 +316,8 @@ function update!(nl::NeighbourList, cell::Cell)
 end
 
 
-NeighbourList(cell::Cell, rcut, nmax=100; savevec=false) = NeighbourList(ExtendedPointArray(cell, rcut), rcut, nmax; savevec)
+NeighbourList(cell::Cell, rcut, nmax=100; savevec=false) =
+    NeighbourList(ExtendedPointArray(cell, rcut), rcut, nmax; savevec)
 
 "Number of neighbours for a point"
 num_neighbours(nl::NeighbourList, iorig) = nl.nneigh[iorig]
@@ -308,7 +326,7 @@ num_neighbours(nl::NeighbourList, iorig) = nl.nneigh[iorig]
 abstract type AbstractNLIterator end
 
 "Iterator interface for going through all neighbours"
-struct NLIterator{T, G} <: AbstractNLIterator
+struct NLIterator{T,G} <: AbstractNLIterator
     nl::T
     iorig::Int
     unique::G
@@ -340,14 +358,19 @@ function Base.iterate(nli::NLIterator, state=1)
             seen = any(x -> nl.orig_indices[x, iorig] == oidx, 1:state-1)
             if seen
                 # Search the next neghbour
-                state += 1 
+                state += 1
             else
                 # Unique neighbour found - stop
                 break
             end
         end
     end
-    return (nl.orig_indices[state, iorig], nl.extended_indices[state, iorig], nl.distance[state, iorig]), state + 1
+    return (
+        nl.orig_indices[state, iorig],
+        nl.extended_indices[state, iorig],
+        nl.distance[state, iorig],
+    ),
+    state + 1
 end
 
 function Base.iterate(nli::NLIteratorWithVector, state=1)
@@ -356,14 +379,20 @@ function Base.iterate(nli::NLIteratorWithVector, state=1)
     if state > nl.nneigh[nli.iorig]
         return nothing
     end
-    return (nl.orig_indices[state, iorig], nl.extended_indices[state, iorig], nl.distance[state, iorig], nl.vectors[state, iorig]), state + 1
+    return (
+        nl.orig_indices[state, iorig],
+        nl.extended_indices[state, iorig],
+        nl.distance[state, iorig],
+        nl.vectors[state, iorig],
+    ),
+    state + 1
 end
 
 """
 Iterate the neighbours of a site in the original cell.
 Returns a tuple of (original_index, extended_index, distance) for each iteration
 """
-eachneighbour(nl::NeighbourList, iorig;unique=false) = NLIterator(nl, iorig, unique)
+eachneighbour(nl::NeighbourList, iorig; unique=false) = NLIterator(nl, iorig, unique)
 
 
 """

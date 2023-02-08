@@ -4,11 +4,11 @@ import Spglib
 
 @testset "Cell" begin
     mat = Float64[
-        2 0 0 
+        2 0 0
         0 2 0
         0 0 3
     ]
-    s = Cell(Lattice(mat), [1,1,1,1], rand(3, 4) .* 10 .- 5 )
+    s = Cell(Lattice(mat), [1, 1, 1, 1], rand(3, 4) .* 10 .- 5)
     @testset "Construct" begin
         @test begin
             Cell(Lattice(mat), [1, 1, 1, 1], rand(3, 4))
@@ -21,10 +21,10 @@ import Spglib
     end
     @testset "Methods" begin
         @test nions(s) == 4
-        @test size(positions(s)) == (3, 4) 
+        @test size(positions(s)) == (3, 4)
         @test volume(s) > 0
-        @test all(x-> x == :H, species(s)) 
-        @test all(x-> x == 1, atomic_numbers(s)) 
+        @test all(x -> x == :H, species(s))
+        @test all(x -> x == 1, atomic_numbers(s))
         ss = CellBase.make_supercell(s, 2, 2, 2)
         @test CellBase.natoms(ss) == CellBase.natoms(s) * 8
         @test CellBase.cellpar(ss)[1:3] == CellBase.cellpar(s)[1:3] .* 2
@@ -47,12 +47,12 @@ import Spglib
 
     @testset "interface" begin
         @test length(s) == 4
-        @test length(s[[1,2]]) == 2
+        @test length(s[[1, 2]]) == 2
         @test isa(s[1], CellBase.Site)
         stmp = deepcopy(s)
         site = stmp[1]
-        site.position[1] = -10.
-        @test stmp.positions[1, 1] == -10.
+        site.position[1] = -10.0
+        @test stmp.positions[1, 1] == -10.0
     end
 end
 
@@ -61,15 +61,15 @@ end
         @test (Site(rand(3), 1, :H); true)
     end
     @testset "methods" begin
-        s1 = Site([0.0, 0.0, 0.0], 1, :H)        
-        s2 = Site([1.0, 1.0, -1.0], 1, :H)        
+        s1 = Site([0.0, 0.0, 0.0], 1, :H)
+        s2 = Site([1.0, 1.0, -1.0], 1, :H)
         @test distance_between(s1, s2) ≈ sqrt(3)
         @test distance_squared_between(s1, s2) ≈ 3
         @test distance_between(s1, s2, [0, 0, 1]) ≈ sqrt(2)
         @test distance_squared_between(s1, s2, [0, 0, 1]) ≈ 2
-        @test s1.x == 0.
-        @test s2.y == 1.
-        @test s2.z == -1.
+        @test s1.x == 0.0
+        @test s2.y == 1.0
+        @test s2.z == -1.0
         @test :x in propertynames(s1)
     end
 end
@@ -79,16 +79,20 @@ end
         @test (Lattice(rand(3, 3)); true)
     end
     @testset "Methods" begin
-        l = Lattice(Float64[2 0 0
-                     0 1 0
-                     0 0 1])
-        l2 = Lattice(Float64[2 0 0
-                     2 1 0
-                     0 0 1])
+        l = Lattice(Float64[
+            2 0 0
+            0 1 0
+            0 0 1
+        ])
+        l2 = Lattice(Float64[
+            2 0 0
+            2 1 0
+            0 0 1
+        ])
         @test volume(l) == 2.0
         @test cellmat(l) === l.matrix
         @test get_cellmat(l) !== l.matrix
-        
+
         @test cellvecs(l)[1] == [2, 0, 0]
         @test cellvecs(l2)[1] == [2, 2, 0]
         site = Site([2.1, 0, 0], 1, :H)
@@ -98,9 +102,11 @@ end
     end
 
     @testset "Mic" begin
-        l = Lattice(Float64[2 0 0
-                     0 1 0
-                     0 0 1])
+        l = Lattice(Float64[
+            2 0 0
+            0 1 0
+            0 0 1
+        ])
         vec, d = CellBase.mic(l, reshape([0.1, 0.1, 0.1], 3, 1))
         @test d[1] ≈ sqrt(3) / 10
         @test vec[:] == [0.1, 0.1, 0.1]
@@ -110,64 +116,64 @@ end
         @test vec[:] != [1, 1, 1]
     end
 
-   
+
 end
 
 @testset "NL" begin
-        lattice = Lattice(10, 10, 10)
-        frac_pos = [
-            0 0.5 0.5 0.5 0
-            0 0.5 0.5 0. 0.5 
-            0 0.5 0.  0.5  0.5
-        ]
-        pos = cellmat(lattice) * frac_pos
-        testcell = Cell(Lattice(10, 10, 10), [1,2,3,4,5], pos) 
+    lattice = Lattice(10, 10, 10)
+    frac_pos = [
+        0 0.5 0.5 0.5 0
+        0 0.5 0.5 0.0 0.5
+        0 0.5 0.0 0.5 0.5
+    ]
+    pos = cellmat(lattice) * frac_pos
+    testcell = Cell(Lattice(10, 10, 10), [1, 2, 3, 4, 5], pos)
 
-        parray = ExtendedPointArray(testcell, 6)
-        @test nions_orig(parray) == 5
-        @test nions_extended(parray) == 5 * 27
+    parray = ExtendedPointArray(testcell, 6)
+    @test nions_orig(parray) == 5
+    @test nions_extended(parray) == 5 * 27
 
-        # Building neighbour list
-        nl = NeighbourList(parray, 8.0)
-        @test num_neighbours(nl, 1) == 12
-        @test num_neighbours(nl, 2) == 6
-        @test num_neighbours(nl, 3) == 14
+    # Building neighbour list
+    nl = NeighbourList(parray, 8.0)
+    @test num_neighbours(nl, 1) == 12
+    @test num_neighbours(nl, 2) == 6
+    @test num_neighbours(nl, 3) == 14
 
-        # Distance
-        list = collect(eachneighbour(nl, 1))
-        @test length(list) == 12
-        @test list[1][1] == 3
-        @test list[1][2] == 64
-        @test list[1][3] ≈ sqrt(50)
+    # Distance
+    list = collect(eachneighbour(nl, 1))
+    @test length(list) == 12
+    @test list[1][1] == 3
+    @test list[1][2] == 64
+    @test list[1][3] ≈ sqrt(50)
 
-        list = collect(eachneighbour(nl, 1, unique=true))
-        @test list[1][1] == 3
-        @test list[1][2] == 64
-        @test list[1][3] ≈ sqrt(50)
-        length(list) == 3
-        
-        # Outside the cell
-        positions(testcell)[1] += 101
-        parray = ExtendedPointArray(testcell, 6)
-        @test parray.orig_positions[1][1] != positions(testcell)[1]
-        @test all(all(x .< 10) for x in parray.orig_positions)
+    list = collect(eachneighbour(nl, 1, unique=true))
+    @test list[1][1] == 3
+    @test list[1][2] == 64
+    @test list[1][3] ≈ sqrt(50)
+    length(list) == 3
+
+    # Outside the cell
+    positions(testcell)[1] += 101
+    parray = ExtendedPointArray(testcell, 6)
+    @test parray.orig_positions[1][1] != positions(testcell)[1]
+    @test all(all(x .< 10) for x in parray.orig_positions)
 end
 
 @testset "Spglib" begin
     lattice = Lattice(10, 10, 10)
     frac_pos = [
         0 0.5 0.5 0.5 0
-        0 0.5 0.5 0. 0.5 
-        0 0.5 0.  0.5  0.5
+        0 0.5 0.5 0.0 0.5
+        0 0.5 0.0 0.5 0.5
     ]
     pos = cellmat(lattice) * frac_pos
-    testcell = Cell(Lattice(10, 10, 10), [1,2,3,3,3], pos) 
+    testcell = Cell(Lattice(10, 10, 10), [1, 2, 3, 3, 3], pos)
     @test all(CellBase.SCell(testcell).lattice .== cellmat(lattice))
     scell = Spglib.Cell(testcell)
-    cell2 = Cell(scell) 
+    cell2 = Cell(scell)
     @test all(cell2.positions .== testcell.positions)
-    
-    @test Spglib.get_international(testcell)  == "Pm-3m"
+
+    @test Spglib.get_international(testcell) == "Pm-3m"
     Spglib.get_dataset(testcell)
     Spglib.get_symmetry(testcell)
 
@@ -175,24 +181,32 @@ end
     std = Spglib.standardize_cell(testcell)
     @test std.metadata == testcell.metadata
     @testset "niggli_reduce_cell" begin
-        testcell = Cell(Lattice(5.,5.,5.,30.,30.,30.), [1,2,3,3,3], pos)
-        reduced_cell = niggli_reduce_cell(testcell;wrap_pos=false)
+        testcell = Cell(Lattice(5.0, 5.0, 5.0, 30.0, 30.0, 30.0), [1, 2, 3, 3, 3], pos)
+        reduced_cell = niggli_reduce_cell(testcell; wrap_pos=false)
         @test all(positions(testcell) .== positions(reduced_cell))
-        reduced_cell2 = niggli_reduce_cell(testcell;wrap_pos=true)
+        reduced_cell2 = niggli_reduce_cell(testcell; wrap_pos=true)
         CellBase.wrap!(reduced_cell)
-        @test all(get_scaled_positions(reduced_cell) .== get_scaled_positions(reduced_cell2))
+        @test all(
+            get_scaled_positions(reduced_cell) .== get_scaled_positions(reduced_cell2),
+        )
     end
 
     @testset "niggli_reduce" begin
-        testcell = Cell(Lattice(5.,5.,5.,30.,30.,30.), [1,2,3,3,3], pos)
+        testcell = Cell(Lattice(5.0, 5.0, 5.0, 30.0, 30.0, 30.0), [1, 2, 3, 3, 3], pos)
         testtmp = testcell
         reduced_cell = niggli_reduce(testcell)
-        reduced_cell2 = niggli_reduce_cell(testcell;wrap_pos=false)
-        @test all(isapprox.(get_scaled_positions(reduced_cell), get_scaled_positions(reduced_cell2), atol=1e-7))
+        reduced_cell2 = niggli_reduce_cell(testcell; wrap_pos=false)
+        @test all(
+            isapprox.(
+                get_scaled_positions(reduced_cell),
+                get_scaled_positions(reduced_cell2),
+                atol=1e-7,
+            ),
+        )
     end
 
     @testset "roundtrip functions" begin
-        testcell = Cell(Lattice(5.,5.,5.,30.,30.,30.), [1,2,3,3,3], pos)
+        testcell = Cell(Lattice(5.0, 5.0, 5.0, 30.0, 30.0, 30.0), [1, 2, 3, 3, 3], pos)
         @test isa(standardize_cell(testcell), Cell)
         @test isa(find_primitive(testcell), Cell)
         @test isa(refine_cell(testcell), Cell)
@@ -200,4 +214,3 @@ end
     end
 
 end
-

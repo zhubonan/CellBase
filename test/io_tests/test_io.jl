@@ -25,11 +25,11 @@ using Test
     @testset "CELL" begin
         cell = CellBase.read_cell(joinpath(this_dir..., "Si2.cell"))
         @test species(cell) == [:Si, :Si]
-        @test cellmat(cell)[1] ≈ 2.69546455  atol=1e-5
+        @test cellmat(cell)[1] ≈ 2.69546455 atol = 1e-5
 
         # Test writing CEll file
-        pos = rand(3,3)
-        latt = rand(3,3)
+        pos = rand(3, 3)
+        latt = rand(3, 3)
         tmp, f = mktemp()
         CellBase.CellIO.write_cell(f, latt, pos, [:H, :H, :H])
         close(f)
@@ -44,10 +44,11 @@ using Test
     end
 
     @testset "CASTEP" begin
-        snapshots = CellBase.read_castep(joinpath(this_dir..., "Fe.castep"), only_first=false)
+        snapshots =
+            CellBase.read_castep(joinpath(this_dir..., "Fe.castep"), only_first=false)
         @test length(snapshots) == 11
         snap = snapshots[1]
-        @test snap.forces[1] ≈ -3.20036 
+        @test snap.forces[1] ≈ -3.20036
     end
 
 end
