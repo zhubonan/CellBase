@@ -54,6 +54,28 @@ using Test
         @test all(cellmat(celltmp2) .== cellmat(celltmp))
     end
 
+    @testset "POSCAR" begin
+        cell = Cell(Lattice(10, 10, 10), [:H, :O, :H], [[0, 0.0, 0], [1, 0, 0], [2, 0, 0]])
+
+        mktemp() do path, io
+            write_poscar(io, cell)
+            seekstart(io)
+            lines = readlines(io)
+            @test any(x -> startswith(x, "   H  O"), lines)
+            @test any(x -> startswith(x, "   2  1"), lines)
+            @test any(x -> startswith(x, "Direct"), lines)
+            @test any(x -> startswith(x, "    0.00"), lines)
+            @test any(x -> startswith(x, "    0.20"), lines)
+            @test any(x -> startswith(x, "    0.10"), lines)
+            @test any(x -> startswith(x, "     10.00"), lines)
+            close(io)
+            write_poscar(path, cell)
+            @test any(x -> startswith(x, "    0.20"), lines)
+            @test any(x -> startswith(x, "    0.10"), lines)
+            @test any(x -> startswith(x, "     10.00"), lines)
+        end
+    end
+
     @testset "CASTEP" begin
         snapshots =
             CellBase.read_castep(joinpath(this_dir..., "Fe.castep"), only_first=false)
