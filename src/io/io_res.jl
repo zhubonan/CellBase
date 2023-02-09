@@ -8,7 +8,7 @@ import GZip
 """
 Read an array containing the lines of the SHELX file
 """
-function read_res(lines::Vector{String})
+function read_res(lines::Vector{<:AbstractString})
     cellpar = Array{Float64}(undef, 6)
     title_items = Dict{Symbol,Any}()
     line_no = 1

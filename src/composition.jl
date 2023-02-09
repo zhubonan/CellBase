@@ -31,6 +31,11 @@ struct Composition
     end
 end
 
+"""
+    natoms(s::Composition)
+Return the number of atoms in the composition
+"""
+natoms(s::Composition) = sum(s.counts)
 
 """
     Composition(pairs::Pair{Symbol, T}...) where T
