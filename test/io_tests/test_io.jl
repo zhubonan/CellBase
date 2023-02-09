@@ -73,6 +73,12 @@ using Test
             @test any(x -> startswith(x, "    0.20"), lines)
             @test any(x -> startswith(x, "    0.10"), lines)
             @test any(x -> startswith(x, "     10.00"), lines)
+            newcell = read_poscar(path)
+            @test cellmat(newcell) == cellmat(cell)
+            @test species(newcell) == [:H, :H, :O]
+            @test positions(newcell)[1, 1] == 0.0
+            @test positions(newcell)[1, 2] == 2.0
+            @test positions(newcell)[1, 3] == 1.0
         end
     end
 
