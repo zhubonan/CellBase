@@ -142,7 +142,15 @@ end
 """
     write_res(io::IO, structure::Cell)
 
-Write out SHELX format data
+Write out SHELX format data including additional information stored in  `structure.metadata`.
+
+Supported keys: `:label`, `:pressure`, `:volume`, `:enthalpy`, `:spin`, `:abs_spin`, `:symm`, `:flag1`, `flag2`, `flag3`.
+
+The following fields are also treated as the `REM` line:
+- `info`: If a `Dict` is supplied the key-value pairs will be written.
+- `comments`:  Any additional comments to be written. Must be supplied as a `Vector{<:AbstractString}`.
+
+The composition of the structure will be written as `REM Composition: <E1> <N1> <E2> <N2>`.
 """
 function write_res(io::IO, structure::Cell)
     infodict = structure.metadata
@@ -161,6 +169,29 @@ function write_res(io::IO, structure::Cell)
     )
     titl_line = @sprintf("TITL %s %.10f %.10f %.10f %.3f %.3f %d %s %s %s %s\n", titl...)
     write(io, titl_line)
+
+    # Write comment lines
+    if :comments in keys(infodict)
+        for line in infodict[:comments]
+            println(io, "REM $(line)")
+        end
+    end
+
+    # Write key value pairs
+    if :info in keys(infodict) && isa(infodict[:info], Dict)
+        for (key, value) in pairs(infodict[:info])
+            println(io, "REM $(key): $(value)")
+        end
+    end
+
+    # Write composition
+    comp = Composition(structure)
+    print(io, "REM Composition:")
+    for (elem, n) in comp
+        print(io, " ", elem, " ", n)
+    end
+    print(io, "\n")
+
     cell_line = @sprintf(
         "CELL 1.54180 %.6f %.6f %.6f %.6f %.6f %.6f\n",
         cellpar(lattice(structure))...

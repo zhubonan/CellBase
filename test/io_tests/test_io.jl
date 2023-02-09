@@ -20,6 +20,17 @@ using Test
         @test length(cells) == 2
         @test cellpar(cells[1])[1] == 2.73724
         @test cellpar(cells[1])[2] == 6.02753
+
+        mktempdir() do tempd
+            cell.metadata[:comments] = ["COMMENT1", "COMMENT2"]
+            cell.metadata[:info] = Dict("A" => 2, "B" => 3)
+            write_res(joinpath(tempd, "test.res"), cell)
+            written = readlines(joinpath(tempd, "test.res"))
+            @test "REM COMMENT1" in written
+            @test "REM COMMENT2" in written
+            @test "REM A: 2" in written
+            @test "REM Composition: Li 2.0 Ni 2.0 O 4.0" in written
+        end
     end
 
     @testset "CELL" begin
