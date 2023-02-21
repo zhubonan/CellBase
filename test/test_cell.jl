@@ -8,7 +8,10 @@ import Spglib
         0 2 0
         0 0 3
     ]
-    s = Cell(Lattice(mat), [1, 1, 1, 1], rand(3, 4) .* 10 .- 5)
+    example_cell = Cell(Lattice(mat), [1, 1, 1, 1], rand(3, 4) .* 10 .- 5)
+    example_cell2 = Cell(Lattice(mat), [1, 2, 2, 1], rand(3, 4) .* 10 .- 5)
+    example_cell2.arrays[:forces] = rand(3, 3, 4)
+
     @testset "Construct" begin
         @test begin
             Cell(Lattice(mat), [1, 1, 1, 1], rand(3, 4))
@@ -19,40 +22,58 @@ import Spglib
             true
         end
     end
-    @testset "Methods" begin
-        @test nions(s) == 4
-        @test size(positions(s)) == (3, 4)
-        @test volume(s) > 0
-        @test all(x -> x == :H, species(s))
-        @test all(x -> x == 1, atomic_numbers(s))
-        ss = CellBase.make_supercell(s, 2, 2, 2)
-        @test CellBase.natoms(ss) == CellBase.natoms(s) * 8
-        @test CellBase.cellpar(ss)[1:3] == CellBase.cellpar(s)[1:3] .* 2
-        @test CellBase.cellpar(ss)[4:6] == CellBase.cellpar(s)[4:6]
 
-        @test get_cellmat(s) !== cellmat(s)
-        @test get_positions(s) !== positions(s)
-        @test get_lattice(s) !== lattice(s)
+    @testset "Sort" begin
+        c = Cell(Lattice(mat), [:H, :O, :O, :H], rand(3, 4))
+        c.arrays[:forces] = rand(3, 3, 4)
+
+        c_new = sort(c)
+        @test species(c_new) == [:H, :H, :O, :O]
+        sort!(c)
+        @test species(c) == [:H, :H, :O, :O]
+    end
+
+    @testset "Methods" begin
+        @test nions(example_cell) == 4
+        @test size(positions(example_cell)) == (3, 4)
+        @test volume(example_cell) > 0
+        @test all(x -> x == :H, species(example_cell))
+        @test all(x -> x == 1, atomic_numbers(example_cell))
+        ss = CellBase.make_supercell(example_cell, 2, 2, 2)
+        @test CellBase.natoms(ss) == CellBase.natoms(example_cell) * 8
+        @test CellBase.cellpar(ss)[1:3] == CellBase.cellpar(example_cell)[1:3] .* 2
+        @test CellBase.cellpar(ss)[4:6] == CellBase.cellpar(example_cell)[4:6]
+
+        @test get_cellmat(example_cell) !== cellmat(example_cell)
+        @test get_positions(example_cell) !== positions(example_cell)
+        @test get_lattice(example_cell) !== lattice(example_cell)
 
         # Test getting wrapped array
-        @test length(CellBase.sposarray(s)) == length(s)
+        @test length(CellBase.sposarray(example_cell)) == length(example_cell)
         @test begin
-            pos = CellBase.wrapped_spos(s)
+            pos = CellBase.wrapped_spos(example_cell)
             all(all(x .< 3) for x in pos)
         end
 
-        wrap!(s)
-        @test all(all(x .< 3) for x in CellBase.sposarray(s))
+        wrap!(example_cell)
+        @test all(all(x .< 3) for x in CellBase.sposarray(example_cell))
     end
 
     @testset "interface" begin
-        @test length(s) == 4
-        @test length(s[[1, 2]]) == 2
-        @test isa(s[1], CellBase.Site)
-        stmp = deepcopy(s)
+        @test length(example_cell) == 4
+        @test length(example_cell[[1, 2]]) == 2
+        @test isa(example_cell[1], CellBase.Site)
+        stmp = deepcopy(example_cell)
         site = stmp[1]
         site.position[1] = -10.0
         @test stmp.positions[1, 1] == -10.0
+
+        # Test clipping
+        tmp = example_cell2[[1, 3]]
+        @test length(tmp) == 2
+        @test size(tmp.arrays[:forces]) == (3, 3, 2)
+        @test tmp.arrays[:forces][:, :, 1] == example_cell2.arrays[:forces][:, :, 1]
+        @test tmp.arrays[:forces][:, :, 2] == example_cell2.arrays[:forces][:, :, 3]
     end
 end
 
@@ -179,7 +200,8 @@ end
 
     testcell.metadata[:test] = 1
     std = Spglib.standardize_cell(testcell)
-    @test std.metadata == testcell.metadata
+    prim = Spglib.find_primitive(testcell)
+
     @testset "niggli_reduce_cell" begin
         testcell = Cell(Lattice(5.0, 5.0, 5.0, 30.0, 30.0, 30.0), [1, 2, 3, 3, 3], pos)
         reduced_cell = niggli_reduce_cell(testcell; wrap_pos=false)

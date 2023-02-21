@@ -34,6 +34,23 @@ function Cell(cell::SCell)
     Cell(Lattice(collect(cell.lattice)), collect(cell.types), pos)
 end
 
+
+"""
+    Cell(cell::SCell)
+
+Return a `Cell` object from `Spglib.Cell` where the `SCell.types` have been changed to 1-based index.
+This is useful when the `Spglib._expand_cell` is called where the `types` returned is re-indexed.
+"""
+function Cell(cell::SCell, symbols)
+    # Collect positions
+    pos = zeros(Float64, 3, length(cell.positions))
+    for i = 1:length(cell.positions)
+        pos[:, i] .= cell.lattice * cell.positions[i]
+    end
+    Cell(Lattice(collect(cell.lattice)), map(x -> symbols[x], cell.types), pos)
+end
+
+
 """
 Macro for extending the Spglib methods.
 
@@ -62,14 +79,21 @@ Usage:
 ```
 
 will allow the `standardize_cell` method to be used and the returned `Spglib.Cell` is converted to `Cell`.
+This assumes the only changes made is on the Lattice and there is no change in the atomic positions/orders.
 """
 macro extend_scell_roundtrip(func)
     quote
         function Spglib.$(func)(cell::Cell, args...; kwargs...)
-            new_cell = Cell(Spglib.$(func)(SCell(cell), args...; kwargs...))
+
+            # Ensure consistent symbols 
+            # This is because Spglib._expand_cell will lose the original atomic identifies and use the 1 based indexing instead
+
+            symbols = unique(species(cell))
+            new_cell = Cell(Spglib.$(func)(SCell(cell), args...; kwargs...), symbols)
 
             # Create a copy of the original cell and set positons and cell
             out_cell = deepcopy(cell)
+
             set_cellmat!(out_cell, cellmat(new_cell))
             set_positions!(out_cell, positions(new_cell))
             # Check for any reordering of the symbols
@@ -86,6 +110,28 @@ macro extend_scell_roundtrip(func)
     end
 end
 
+"""
+Macro for extending the Spglib methods and convert returned `Spglib.Cell` to `Cell`.
+
+Usage:
+
+```
+@extend_scell_roundtrip_new find_primitive
+```
+
+will allow the `standardize_cell` method to be used and the returned `Spglib.Cell` is converted to `Cell`.
+"""
+macro extend_scell_roundtrip_new(func)
+    quote
+        function Spglib.$(func)(cell::Cell, args...; kwargs...)
+            symbols = unique(species(cell))
+            new_cell = Cell(Spglib.$(func)(SCell(cell), args...; kwargs...), symbols)
+        end
+    end
+end
+
+
+
 # Extend 
 @extend_scell get_dataset
 @extend_scell get_symmetry
@@ -96,9 +142,9 @@ end
 @extend_scell get_spacegroup_type
 @extend_scell get_schoenflies
 
-@extend_scell_roundtrip standardize_cell
-@extend_scell_roundtrip find_primitive
-@extend_scell_roundtrip refine_cell
+@extend_scell_roundtrip_new standardize_cell
+@extend_scell_roundtrip_new find_primitive
+@extend_scell_roundtrip_new refine_cell
 #@extend_scell_roundtrip niggli_reduce
 @extend_scell_roundtrip delaunay_reduce
 

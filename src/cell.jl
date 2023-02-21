@@ -91,18 +91,47 @@ end
 
 Clip a structure with a given indexing array
 """
-function clip(s::Cell, mask::AbstractVector)
-    new_pos = positions(s)[:, mask]
-    new_symbols = species(s)[mask]
+function clip(cell::Cell, mask::AbstractVector)
+    new_pos = positions(cell)[:, mask]
+    new_symbols = species(cell)[mask]
     # Clip any additional arrays
     new_array = Dict{Symbol,AbstractArray}()
-    for (key, array) in pairs(s.arrays)
-        new_array[key] = selectdim(array, ndims(A), mask)
+    for (key, array) in pairs(cell.arrays)
+        new_array[key] = selectdim(array, ndims(array), mask)
     end
-    Cell(lattice(s), new_symbols, new_pos, new_array, s.metadata)
+    Cell(lattice(cell), new_symbols, new_pos, new_array, cell.metadata)
 end
 
 Base.getindex(cell::Cell, i::AbstractVector) = clip(cell, i)
+
+
+"""
+    Base.sort(cell::Cell)
+
+Sort a `Cell` with the positions sorted by the species kinds.
+"""
+Base.sort(cell::Cell) = cell[sortperm(species(cell))]
+
+"""
+    Base.sort!(cell::Cell)
+
+In-place sort a `Cell` with the positions sorted by the species kinds.
+
+!!! note
+    This will in-place-update all underlying Array - use with caution where the
+    data is shared between multiple instances.
+
+"""
+function Base.sort!(cell::Cell)
+    idx = sortperm(species(cell))
+    species(cell) .= species(cell)[idx]
+    cell.positions .= cell.positions[:, idx]
+    for array in values(cell.arrays)
+        array .= selectdim(array, ndims(array), idx)
+    end
+    cell
+end
+
 
 # Basic interface 
 """
