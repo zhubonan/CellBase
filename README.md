@@ -1,6 +1,6 @@
 ## CellBase
 
-[![Documentation](https://img.shields.io/badge/docs-master-blue.svg)](https://zhubonan.github.io/CellBase)
+[![Documentation](https://img.shields.io/badge/docs-master-blue.svg)](https://zhubonan.github.io/CellBase.jl)
 [![codecov](https://codecov.io/gh/zhubonan/CellBase.jl/branch/master/graph/badge.svg?token=ACUER6ARXE)](https://codecov.io/gh/zhubonan/CellBase.jl)
 
 Base code and routines for building/manipulating periodic crystal structures.
