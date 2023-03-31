@@ -76,6 +76,8 @@ function ExtendedPointArray(cell::Cell, rcut)
 end
 
 """
+    rebuild!(ea::ExtendedPointArray, cell)
+
 Rebuild the ExtendedPointArray for an existing cell
 """
 function rebuild!(ea::ExtendedPointArray, cell)
@@ -90,7 +92,11 @@ function rebuild!(ea::ExtendedPointArray, cell)
     ea
 end
 
-"Update extended points with lattice shifts - need to rebuild from scratch"
+"""
+    _update_ea_with_lattice_change(ea, cell)
+
+Update extended points with lattice shifts - need to rebuild from scratch
+"""
 function _update_ea_with_lattice_change(ea, cell)
     newshifts = CellBase.shift_vectors(cellmat(lattice(cell)), ea.rcut; safe=false)
     # Number of vectors change
@@ -123,7 +129,11 @@ function _update_ea_with_lattice_change(ea, cell)
     end
 end
 
-"Update extended points without lattice shifts - apply displacements to all image points"
+"""
+    _update_ea_no_lattice_change(ea, cell)
+
+Update extended points without lattice shifts - apply displacements to all image points
+"""
 function _update_ea_no_lattice_change(ea, cell)
     spos = wrapped_spos(cell)
     ns = length(ea.shiftvecs)
@@ -140,13 +150,15 @@ function _update_ea_no_lattice_change(ea, cell)
 end
 
 """
+    NeighbourList{T,N}
+
 Type for representing a neighbour list
 """
-struct NeighbourList{T,N}
+mutable struct NeighbourList{T,N}
     ea::ExtendedPointArray{T}
-    "Extended indice of the neighbours"
+    "Extended indices of the neighbours"
     extended_indices::Matrix{Int}
-    "Original indice of the neighbours"
+    "Original indices of the neighbours"
     orig_indices::Matrix{Int}
     "Distance to the neighbours"
     distance::Matrix{Float64}
@@ -159,9 +171,12 @@ struct NeighbourList{T,N}
     "Contains vector displacements or not"
     has_vectors::Bool
     rcut::Float64
+    nmax_limit::Int
+    last_rebuild_positions::Vector{T}
+    skin::Float64
 end
 
-
+"""Check if a static vector only contains zeros"""
 allzeros(svec::SVector{1}) = (svec[1] == 0)
 allzeros(svec::SVector{2}) = (svec[1] == 0) && (svec[2] == 0)
 allzeros(svec::SVector{3}) = (svec[1] == 0) && (svec[2] == 0) && (svec[3] == 0)
@@ -186,17 +201,36 @@ function Base.show(io::IO, n::NeighbourList)
 end
 
 """
-    NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false)
+    NeighbourList(ea::ExtendedPointArray, rcut, nmax=1000; savevec=false)
 
 Construct a NeighbourList from an extended point array for the points in the original cell
 """
-function NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false, ndim=3)
+function NeighbourList(
+    ea::ExtendedPointArray{T},
+    rcut,
+    nmax=1000;
+    savevec=false,
+    ndim=3,
+    nmax_limit=5000,
+    skin=-1.0,
+) where {T}
     rcut = convert(Float64, rcut)
+
+    # If using skin, update the rcut
+    if skin > 0
+        rcut = rcut + skin
+    end
+
     norig = length(ea.orig_positions)
     extended_indices = zeros(Int, nmax, norig)
     orig_indices = zeros(Int, nmax, norig)
     distance = fill(-1.0, nmax, norig)
     nneigh = zeros(Int, norig)
+
+    # Ensure the nmax_limit is at least four times that of nmax otherwise there is not much point
+    if nmax_limit < nmax * 4
+        nmax_limit = nmax * 4
+    end
 
     @assert rcut >= ea.rcut "Cut off radius is large that that of the periodic image cut off."
 
@@ -213,26 +247,67 @@ function NeighbourList(ea::ExtendedPointArray, rcut, nmax=100; savevec=false, nd
         nmax,
         savevec,
         rcut,
+        nmax_limit,
+        T[],
+        skin,
     )
     rebuild!(nl, ea)
     nl
 end
 
 """
+    increase_nmax!(nl::NeighbourList, nmax)
+
+Increase the maximum number of neighbours storable in the neighbour list
+"""
+function update_nmax!(nl::NeighbourList, nmax)
+    norig = length(nl.ea.orig_positions)
+    nl.extended_indices = zeros(Int, nmax, norig)
+    nl.orig_indices = zeros(Int, nmax, norig)
+    nl.distance = fill(-1.0, nmax, norig)
+    nl.nmax = nmax
+    if nl.has_vectors
+        base = nl.vectors[1]
+        nl.vectors = fill(base, nmax, norig)
+    end
+    rebuild!(nl, nl.ea)
+end
+
+"""
+    _need_rebuild(nl::NeighbourList)
+
+Check if a full rebuild is needed for the NeighbourList if the `skin` is used and
+if any atom has move more than the skin.
+"""
+function _need_rebuild(nl::NeighbourList)
+    if nl.skin < 0
+        return true
+    end
+    # Initial build?
+    isempty(nl.last_rebuild_positions) && return true
+    # Compute the displacement
+    for (orig, moved) in zip(nl.ea.orig_positions, nl.last_rebuild_positions)
+        (norm(orig - moved) >= nl.skin) && return true
+    end
+    return false
+end
+
+"""
     rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
 
-Perform a full rebuild of the neighbour list from scratch
+Perform a full rebuild of the neighbour list from scratch for a given ExtendedPointArray.
+Extended the neighbour storage space if necessary.
 """
 function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
 
-    extended_indices = nl.extended_indices
-    orig_indices = nl.orig_indices
-    distance = nl.distance
-    nneigh = nl.nneigh
-    nmax = nl.nmax
-    savevec = nl.has_vectors
-    vectors = nl.vectors
-    rcut = nl.rcut
+    # Check if we actually need rebuilding or not....
+    if !_need_rebuild(nl)
+        return update!(nl)
+    end
+
+    (; extended_indices, orig_indices, distance, nneigh, nmax, has_vectors, vectors, rcut) =
+        nl
+
     # Reset
     fill!(vectors, vectors[1] .* 0.0)
     fill!(distance, -1.0)
@@ -240,6 +315,7 @@ function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
     fill!(extended_indices, 0)
     fill!(nneigh, 0)
 
+    ineigh_max = Atomic{Int}(0)
     Threads.@threads for iorig = 1:length(ea.orig_positions)
         posi = ea.orig_positions[iorig]
         ineigh = 0
@@ -256,20 +332,38 @@ function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
                     extended_indices[ineigh, iorig] = j
                     # Store the index of the point in the original cell
                     orig_indices[ineigh, iorig] = ea.indices[j]
-                    savevec && (vectors[ineigh, iorig] = posj .- posi)
+                    has_vectors && (vectors[ineigh, iorig] = posj .- posi)
                 end
             end
         end
         # Store the total number of neighbours for this point
         if ineigh > nmax
-            throw(
-                ErrorException(
-                    "Too many neighbours, please increase the value of nmax to at least $(ineigh)",
-                ),
-            )
+            if nmax > ineigh_max[]
+                ineigh_max[] = ineigh
+            end
+
         end
         nneigh[iorig] = ineigh
     end
+    imax = ineigh_max[]
+    if imax > 0
+        new_nmax = min(imax * 2, nl.nmax_limit)
+        if new_nmax < imax
+            throw(
+                ErrorException(
+                    "Cannot increase the reuqired beyong the `nmax_limit``: $(nmax_limit)",
+                ),
+            )
+        end
+        # @warn "Too many neighbours - increasing the value of nmax to $(new_nmax) × 2 and rebuild"
+        update_nmax!(nl, new_nmax)
+        rebuild!(nl, ea)
+    end
+    # If using skin we need to copy the last positions
+    if nl.skin > 0
+        nl.last_rebuild_positions = collect(ea.orig_positions)
+    end
+
     nl
 end
 
@@ -298,7 +392,7 @@ function update!(nl::NeighbourList)
             # Update distance
             nl.distance[inn, isite] = dij
             # Update the vector
-            nl.has_vectors && (nl.vectors[inn, isite] = posj .- posi)
+            nl.has_vectors && (nl.vectors[inn, isite] = posj - posi)
             inn += 1
         end
     end
@@ -308,7 +402,7 @@ end
     update!(nl::NeighbourList, cell::Cell) 
 
 Update the NeighbourList with the latest geometry of the Cell.
-No rebuilding is performed
+No rebuilding is performed.
 """
 function update!(nl::NeighbourList, cell::Cell)
     rebuild!(nl.ea, cell)
@@ -321,6 +415,38 @@ NeighbourList(cell::Cell, rcut, nmax=100; savevec=false) =
 
 "Number of neighbours for a point"
 num_neighbours(nl::NeighbourList, iorig) = nl.nneigh[iorig]
+
+
+struct Neighbour{T}
+    index::Int
+    index_extended::Int
+    position::T
+    shift_vector::T
+    distance::Float64
+end
+
+"""
+    get_neighbour(nl::NeighbourList, iorig::Int, idx::Int)
+
+Return a single neighbour.
+"""
+function get_neighbour(nl::NeighbourList, iorig::Int, idx::Int)
+    i = nl.orig_indices[idx, iorig]
+    j = nl.extended_indices[idx, iorig]
+    shift_vec = nl.ea.shiftvecs[(j-1)%length(nl.ea.shiftvecs)+1]
+    pos = nl.ea.orig_positions[i]
+    dist = nl.distance[idx, iorig]
+    Neighbour(i, j, pos, shift_vec, dist)
+end
+
+"""
+    get_neighbours(nl::NeighbourList, iorig::Int)
+
+Return a Vector of Neighbour objects
+"""
+function get_neighbours(nl::NeighbourList, iorig::Int)
+    [get_neighbour(nl, iorig, idx) for idx = 1:nl.nneigh[iorig]]
+end
 
 
 abstract type AbstractNLIterator end

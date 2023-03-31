@@ -160,7 +160,51 @@ end
     @test num_neighbours(nl, 2) == 6
     @test num_neighbours(nl, 3) == 14
 
+    # Test expanding the NL size
+    for savevec in [false, true]
+        nl = NeighbourList(parray, 8.0, 10; savevec)
+        # Check if the number of neighbours has been increased automatically
+        nl.nmax > 10
+        @test num_neighbours(nl, 1) == 12
+        @test num_neighbours(nl, 2) == 6
+        @test num_neighbours(nl, 3) == 14
+    end
+
+    # Test 'skin' 
+    # If used, the neighbour list is only rebuilt when the atoms move beyond this distnace
+
+    for savevec in [false, true]
+        nl = NeighbourList(deepcopy(parray), 8.0; skin=0.5, savevec)
+        nl2 = nl
+        global nl2
+        neigh1 = CellBase.get_neighbour(nl, 1, 1)
+        testcell2 = deepcopy(testcell)
+        testcell2.positions[1] = 0.3
+        # Rebuild - this should not trigger a complete rebuild of the NL
+        rebuild!(nl, testcell2)
+        # Verify that we did not fully rebuild the NL
+        @test nl.last_rebuild_positions == parray.orig_positions
+        # Verify that the neighbour distances have changed
+        neigh2 = CellBase.get_neighbour(nl, 1, 1)
+        @test neigh1.distance != neigh2.distance
+        @test neigh2.shift_vector == neigh1.shift_vector
+        @test neigh2.index_extended == neigh1.index_extended
+
+        # In this case the atom has moved beyond the skin, full rebuild should triggered
+        testcell2.positions[1] = 0.6
+        rebuild!(nl, testcell2)
+        # Verify the last-last_rebuild_positions has been charged
+        @test any(nl.last_rebuild_positions .!= parray.orig_positions)
+        @test all(nl.last_rebuild_positions .== nl.ea.orig_positions)
+
+        # Now the first neighbour may have a different distance
+        neigh3 = CellBase.get_neighbour(nl, 1, 1)
+        @test neigh3.distance != neigh2.distance
+    end
+
+
     # Distance
+    nl = NeighbourList(parray, 8.0, 10)
     list = collect(eachneighbour(nl, 1))
     @test length(list) == 12
     @test list[1][1] == 3
