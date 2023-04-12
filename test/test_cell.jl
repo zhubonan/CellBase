@@ -280,3 +280,21 @@ end
     end
 
 end
+
+
+@testset "AtomsBase" begin
+    cell = Cell(Lattice(10, 10, 10), repeat([:H], 10), rand(3, 10) .* 10)
+    cell.arrays[:forces] = rand(3, 10)
+
+    sys = CellBase.AtomsBase.atomic_system(cell)
+    converted = Cell(sys)
+    @test CellBase.AtomsBase.atomic_symbol(sys) == species(cell)
+    @test cellmat(converted) == cellmat(cell)
+    for i = 1:3
+        @test all(collect(CellBase.ustrip.(CellBase.AtomsBase.bounding_box(sys)[i])) .== cellvecs(lattice(cell))[i])
+    end
+
+    @test positions(converted) == positions(cell)
+    @test cellmat(converted) == cellmat(cell)
+    @test CellBase.array(converted, :forces) == CellBase.array(cell, :forces)
+end

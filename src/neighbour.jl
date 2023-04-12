@@ -351,7 +351,7 @@ function rebuild!(nl::NeighbourList, ea::ExtendedPointArray)
         if new_nmax < imax
             throw(
                 ErrorException(
-                    "Cannot increase the reuqired beyong the `nmax_limit``: $(nmax_limit)",
+                    "Cannot increase the reuqired beyong the `nmax_limit``: $(nl.nmax_limit)",
                 ),
             )
         end

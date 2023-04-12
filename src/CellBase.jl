@@ -13,5 +13,6 @@ include("composition.jl")
 include("neighbour.jl")
 include("spg.jl")
 include("io/io.jl")
+include("external/atomsbase.jl")
 
 end # module
