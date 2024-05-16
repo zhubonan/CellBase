@@ -31,14 +31,35 @@ function clean_lines(lines_in)
     lines_out
 end
 
+"""
+Separate the unit from the actual content of the block
+"""
+function separate_unit(block)
+    # Parse the unit
+    unit = ""
+    if length(split(block[1])) == 1
+        unit = uppercase(strip(block[1]))
+        popfirst!(block)
+    end
+    unit, block
+end
+
+
 "Read cell related sections"
 function read_cellmat(lines)
     block = find_block(lines, "LATTICE_CART")
+
     if length(block) > 0
+        unit, block = separate_unit(block)
+        !isempty(unit) && @assert startswith(unit, "ANG")
         cellmat = copy(read_num_block(block, 3, column_major=true))
+
     else
         cell_par = Array{Float64}(undef, 6)
         block = find_block(lines, "LATTICE_ABC")
+        unit, block = separate_unit(block)
+        !isempty(unit) && @assert startswith(unit, "ANG") "Only support angstrom unit for lattice"
+
         @assert length(block) > 0 "Neither lattice_cart or lattice_abc are present"
         cell_par_raw = read_num_block(block, 3)
         cell_par[1:3] = cell_par_raw[1, :]
@@ -55,11 +76,12 @@ function read_positions(lines, cellmat)
     block = find_block(lines, "POSITIONS_ABS")
     if length(block) > 0
         is_abs = true
+        unit, block = separate_unit(block)
+        @assert startswith(unit, "ANG") "Only support angstrom unit for positions"
     else
         block = find_block(lines, "POSITIONS_FRAC")
     end
     @assert length(block) > 0 "Positions block found!"
-
     # Parse the position block
     ion_names = Symbol[]
     for line in block
