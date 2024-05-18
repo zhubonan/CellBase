@@ -125,7 +125,7 @@ cellvecs(lattice::Lattice) =
 "Return the volume of the cell"
 function volume(lattice::Lattice)
     a, b, c = cellvecs(lattice)
-    dot(a, cross(b, c))
+    abs(dot(a, cross(b, c)))
 end
 
 """
@@ -147,6 +147,16 @@ function wrap!(s::Site, l::Lattice)
         frac[i] = v
     end
     s.position[:] = l.matrix * frac
+end
+
+function wrap!(vec::AbstractVector, l::Lattice)
+    frac = l.rec * vec 
+    for i = 1:3
+        v = frac[i] % 1
+        v < 0 && (v += 1)
+        frac[i] = v
+    end
+    l.matrix * frac
 end
 
 function Base.show(io::IO, l::Lattice)
