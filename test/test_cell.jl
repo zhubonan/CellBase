@@ -252,6 +252,15 @@ end
         @test all(positions(testcell) .== positions(reduced_cell))
         reduced_cell2 = niggli_reduce_cell(testcell; wrap_pos=true)
         CellBase.wrap!(reduced_cell)
+
+        cube =Lattice(10, 10, 10)
+        vec = [1., 1., 1.]
+        CellBase.wrap!(vec, cube)
+        @test all(vec .== [1, 1, 1])
+        vec = [-1., -1., -1.]
+        CellBase.wrap!(vec, cube)
+        @test all(vec .== [9, 9, 9])
+
         @test all(
             get_scaled_positions(reduced_cell) .== get_scaled_positions(reduced_cell2),
         )

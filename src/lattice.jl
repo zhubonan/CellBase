@@ -141,22 +141,8 @@ frac_pos(s::Site, l::Lattice) = l.rec * s.position
 "Wrap a site back into the box"
 function wrap!(s::Site, l::Lattice)
     frac = frac_pos(s, l)
-    for i = 1:3
-        v = frac[i] % 1
-        v < 0 && (v += 1)
-        frac[i] = v
-    end
-    s.position[:] = l.matrix * frac
-end
-
-function wrap!(vec::AbstractVector, l::Lattice)
-    frac = l.rec * vec 
-    for i = 1:3
-        v = frac[i] % 1
-        v < 0 && (v += 1)
-        frac[i] = v
-    end
-    l.matrix * frac
+    frac .-= floor.(frac)
+    s.position[:] .= l.matrix * frac
 end
 
 function Base.show(io::IO, l::Lattice)

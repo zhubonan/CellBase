@@ -365,13 +365,27 @@ end
 """
     wrap!(cell::Cell)
 
-Wrap atom outside of the lattice back into the box defined by the lattice vectors.
+Wrap an atom outside of the lattice back into the box defined by the lattice vectors.
 """
 function wrap!(cell::Cell)
     scaled = get_scaled_positions(cell)
     scaled .-= floor.(scaled)
     set_scaled_positions!(cell, scaled)
 end
+
+"""
+    wrap!(vec::AbstractVector, l::Lattice)
+
+Wrap a vector back to the periodic box defined by the lattice vectors.
+"""
+function wrap!(vec::AbstractVector, l::Lattice)
+    frac = l.rec * vec 
+    frac .-= floor.(frac)
+    vec .= l.matrix * frac
+end
+
+wrap!(vec::AbstractVector, c::Cell) = wrap!(vec, lattice(c))
+
 
 """
     wrapped_spos(cell)
