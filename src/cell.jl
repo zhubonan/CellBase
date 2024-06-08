@@ -34,7 +34,7 @@ mutable struct Cell{T}
     lattice::Lattice{T}                 # Lattice of the structure
     symbols::Vector{Symbol}
     positions::Matrix{T}
-    arrays::Dict{Symbol, AbstractArray}        # Any additional arrays
+    arrays::Dict{Symbol, Any}        # Any additional arrays
     metadata::Dict{Symbol, Any}
 end
 ```
@@ -44,7 +44,7 @@ mutable struct Cell{T}
     lattice::Lattice{T}                 # Lattice of the structure
     symbols::Vector{Symbol}
     positions::Matrix{T}
-    arrays::Dict{Symbol,AbstractArray}        # Any additional arrays
+    arrays::Dict{Symbol, Any}        # Any additional arrays
     metadata::Dict{Symbol,Any}
 end
 
@@ -54,7 +54,7 @@ end
 Construct a Cell type from arrays
 """
 function Cell(l::Lattice, symbols::Vector{Symbol}, positions::Matrix)
-    arrays = Dict{Symbol,AbstractArray}()
+    arrays = Dict{Symbol, Any}()
     @assert length(symbols) == size(positions, 2)
     Cell(l, symbols, positions, arrays, Dict{Symbol,Any}())
 end
@@ -95,7 +95,7 @@ function clip(cell::Cell, mask::AbstractVector)
     new_pos = positions(cell)[:, mask]
     new_symbols = species(cell)[mask]
     # Clip any additional arrays
-    new_array = Dict{Symbol,AbstractArray}()
+    new_array = Dict{Symbol,Any}()
     for (key, array) in pairs(cell.arrays)
         new_array[key] = selectdim(array, ndims(array), mask)
     end
